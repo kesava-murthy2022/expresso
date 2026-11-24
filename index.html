@@ -85,6 +85,16 @@
   .count button.sel{background:var(--blue)}
   .note{font-size:12px;color:#6b7785;min-height:32px}
   .small{font-size:13px}
+  #setup{background:rgba(255,247,230,.97)}
+  #setup .modal{box-shadow:0 6px 24px rgba(60,40,0,.18)}
+  .hero{font-size:46px;font-weight:900;text-align:center;letter-spacing:.04em;color:#FFB020;-webkit-text-stroke:2px #7a2a0a;text-shadow:0 4px 0 #c8420f;paint-order:stroke fill;line-height:1.1}
+  .tagline{text-align:center;font-weight:800;color:#22A8E1;letter-spacing:.12em;font-size:13px;margin:2px 0 18px}
+  button.big{width:100%;font-size:19px;padding:18px 14px;margin-top:12px;border-radius:18px;background:var(--blue)}
+  button.big.alt{background:var(--green)}
+  button.linkbtn{background:none;box-shadow:none;color:#44515f;text-decoration:underline;font-weight:700;padding:6px 4px;font-size:14px}
+  .ageline{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-size:14px;font-weight:700}
+  .ageline button{padding:6px 14px;font-size:14px;background:#eee6d2;color:var(--ink);box-shadow:0 3px 0 #d3c8aa}
+  .ageline button.sel{background:var(--ink);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.35)}
   #modeRow button,#tabs button{font-size:13px;padding:9px 6px}
   #modeRow button.sel,#tabs button.sel{background:var(--blue)}
   .seat{display:flex;align-items:center;gap:8px;margin:8px 0}
@@ -136,57 +146,57 @@
 
 <div id="missFlash"></div>
 
-<!-- setup -->
+<!-- setup: one simple choice per screen -->
 <div class="overlay" id="setup">
   <div class="modal">
-    <h2>Expresso</h2>
-    <div style="font-size:14px">Who is playing?</div>
-    <div class="count" id="ageRow" style="margin-bottom:6px">
-      <button id="ageKids">Kids (4–11)</button>
-      <button id="ageAll">Everyone</button>
-    </div>
-    <div class="note" id="ageNote" style="min-height:0;margin-bottom:8px"></div>
-    <div class="count" id="tabs">
-      <button id="tabLocal">This device</button>
-      <button id="tabOnline">Online with friends</button>
-    </div>
 
-    <div id="secLocal">
-      <div style="font-size:14px;margin-top:8px">How many players?</div>
-      <div class="count" id="count"></div>
-      <div class="note" id="countNote"></div>
-      <div class="count" id="modeRow" style="margin-top:2px">
-        <button id="modeAuto">Auto-assign colours</button>
-        <button id="modePick">I pick colours</button>
+    <div id="scHome">
+      <div class="hero">EXPRESSO</div>
+      <div class="tagline">FLIP. MATCH. MOVE.</div>
+      <button id="goLocal" class="big">Play on this device</button>
+      <button id="goOnline" class="big alt">Play online with friends</button>
+      <div class="ageline">
+        <span>Players are</span>
+        <button id="ageKids">Kids</button>
+        <button id="ageAll">Everyone</button>
       </div>
-      <div id="seats"></div>
-      <button id="startBtn" style="width:100%;font-size:17px;padding:13px;margin-top:10px">Start game</button>
+      <div class="note" id="ageNote" style="min-height:0;text-align:center"></div>
+      <details style="margin-top:8px"><summary style="font-weight:800;cursor:pointer;font-size:14px;text-align:center">How to play</summary>
+      <ul>
+        <li>Tiles sit face-down in the middle. Flip one on your turn.</li>
+        <li>First find <b>your colour start tile</b>.</li>
+        <li>Then collect your character's emotions <b>in order</b> along your side. Keep flipping while you are right.</li>
+        <li>A miss flashes red, the tile flips back, and the next player goes. Remember where it was!</li>
+        <li><b>Expresso tile</b>: one extra flip, then it leaves the game.</li>
+      </ul></details>
     </div>
 
-    <div id="secOnline" style="display:none">
-      <div class="small" style="margin:10px 0 8px">Everyone plays on their own phone. One person makes a room and shares the 4-letter code.</div>
+    <div id="scLocal" style="display:none">
+      <button class="linkbtn" id="backLocal">← Back</button>
+      <h2 style="margin-top:4px">How many players?</h2>
+      <div class="count" id="count"></div>
+      <div class="note" id="countNote" style="min-height:0"></div>
+      <div id="seats"></div>
+      <button id="startBtn" class="big" style="margin-top:6px">Start game</button>
+      <div style="text-align:center"><button class="linkbtn" id="modeToggle"></button></div>
+    </div>
+
+    <div id="scOnline" style="display:none">
+      <button class="linkbtn" id="backOnline">← Back</button>
+      <h2 style="margin-top:4px">Play online</h2>
       <input class="field" id="onName" maxlength="14" placeholder="Your name">
-      <button id="createBtn" style="width:100%;font-size:16px;padding:12px;margin-top:10px">Create a room</button>
-      <div class="small" style="text-align:center;margin:10px 0;color:#6b7785">or join a friend's room</div>
+      <button id="createBtn" class="big" style="margin-top:12px">Make a room</button>
+      <div class="small" style="text-align:center;margin:12px 0 8px;color:#6b7785">or join a friend's room</div>
       <div style="display:flex;gap:8px">
         <input class="field" id="joinCode" maxlength="4" placeholder="CODE" style="text-transform:uppercase;letter-spacing:.2em;font-weight:800;text-align:center">
-        <button id="joinBtn" style="padding:10px 18px">Join</button>
+        <button id="joinBtn" style="padding:10px 20px">Join</button>
       </div>
       <div class="err" id="netMsg"></div>
-      <div class="note" style="margin-top:6px">Online play connects phones directly. It needs internet, and everyone should keep the game open while playing.</div>
+      <div class="note">Everyone plays on their own phone and needs internet. Keep the game open while playing.</div>
     </div>
 
-    <details style="margin-top:10px"><summary style="font-weight:800;cursor:pointer;font-size:14px">How to play</summary>
-    <ul>
-      <li>Tiles sit face-down in the middle. Flip one on your turn, in front of everyone.</li>
-      <li>First find <b>your colour start tile</b>. Wrong tile? It flips back and the next player goes.</li>
-      <li>Then collect your character's emotions <b>in order</b> along your side. Keep flipping while you are right.</li>
-      <li>A miss flashes the screen red, the tile flips back by itself, and the next player goes. Remember where it was!</li>
-      <li><b>Expresso tile</b>: grants one extra flip, then leaves the game.</li>
-    </ul></details>
   </div>
 </div>
-
 <!-- online lobby -->
 <div class="overlay hide" id="lobby">
   <div class="modal">
@@ -250,7 +260,7 @@ const AGE_NOTE={
   all:'Everyone mode: quieter. Voice only on matches, and no next-space hint. (Both can be switched on or off during play.)'};
 
 /* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays on its own phone */
-let MODE='local', nPlayers=4, G=null, busy=false, ageMode='kids', sentFlip=false, lastSeat=null;
+let MODE='local', nPlayers=2, G=null, busy=false, ageMode='kids', sentFlip=false, lastSeat=null;
 let colourMode='auto', names=['','','',''], colours=[];
 const NET={peer:null,conns:{},hostConn:null,myCol:null,code:null,seatIdx:-1};
 let LB={seats:[],inGame:false};
@@ -327,17 +337,13 @@ function drawSetup(){
   $('ageKids').className=ageMode==='kids'?'sel':'ghost';
   $('ageAll').className=ageMode==='all'?'sel':'ghost';
   $('ageNote').textContent=AGE_NOTE[ageMode];
-  const online=$('secOnline').style.display!=='none';
-  $('tabLocal').className=online?'ghost':'sel';
-  $('tabOnline').className=online?'sel':'ghost';
   $('count').innerHTML='';
   [1,2,3,4].forEach(n=>{
     const b=document.createElement('button');b.textContent=n;b.className=n===nPlayers?'sel':'ghost';
     b.onclick=()=>{nPlayers=n;autoColours();drawSetup()};$('count').appendChild(b);
   });
   $('countNote').textContent=PLAYER_NOTE[nPlayers];
-  $('modeAuto').className=colourMode==='auto'?'sel':'ghost';
-  $('modePick').className=colourMode==='pick'?'sel':'ghost';
+  $('modeToggle').textContent=colourMode==='auto'?'Choose colours myself':'Give me random colours';
   const box=$('seats');box.innerHTML='';
   for(let i=0;i<nPlayers;i++){
     const row=document.createElement('div');row.className='seat';
@@ -350,15 +356,18 @@ function drawSetup(){
       ALLC.forEach(c=>{const b=document.createElement('button');b.className='pk'+(colours[i]===c?' on':'');b.style.background=COL[c];b.title=c;
         b.onclick=()=>{pickCol(colours,i,c,nPlayers);drawSetup()};pk.appendChild(b)});
       row.appendChild(pk);
-    }else{
-      const cn=document.createElement('span');cn.className='cn';cn.textContent=colours[i];row.appendChild(cn);
     }
     box.appendChild(row);
   }
   if(colourMode==='auto'){
-    const s=document.createElement('button');s.className='shuf';s.textContent='Shuffle colours';
-    s.onclick=()=>{autoColours();drawSetup()};box.appendChild(s);
+    const w=document.createElement('div');w.style.textAlign='center';
+    const s=document.createElement('button');s.className='linkbtn';s.textContent='Shuffle colours';
+    s.onclick=()=>{autoColours();drawSetup()};w.appendChild(s);box.appendChild(w);
   }
+}
+function showSection(name){
+  ['Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
+  netMsg('');drawSetup();
 }
 const localSeatInfo=()=>colours.slice(0,nPlayers).map((c,i)=>({col:c,name:(names[i]||'').trim()||('Player '+(i+1))}));
 
@@ -756,16 +765,17 @@ $('hint').onchange=()=>{if(G)update()};
 $('newBtn').onclick=()=>{
   if(MODE==='guest'){location.reload();return}
   if(MODE==='host'){hostToLobby();return}
-  $('winner').classList.add('hide');$('setup').classList.remove('hide');
+  $('winner').classList.add('hide');showSection('Home');$('setup').classList.remove('hide');
 };
 $('againBtn').onclick=()=>{if(MODE==='guest')return;newGame(lastSeat)};
 $('startBtn').onclick=()=>{MODE='local';$('setup').classList.add('hide');newGame()};
 $('ageKids').onclick=()=>{ageMode='kids';drawSetup()};
 $('ageAll').onclick=()=>{ageMode='all';drawSetup()};
-$('tabLocal').onclick=()=>{$('secLocal').style.display='block';$('secOnline').style.display='none';drawSetup()};
-$('tabOnline').onclick=()=>{$('secLocal').style.display='none';$('secOnline').style.display='block';drawSetup()};
-$('modeAuto').onclick=()=>{colourMode='auto';autoColours();drawSetup()};
-$('modePick').onclick=()=>{colourMode='pick';drawSetup()};
+$('goLocal').onclick=()=>showSection('Local');
+$('goOnline').onclick=()=>showSection('Online');
+$('backLocal').onclick=()=>showSection('Home');
+$('backOnline').onclick=()=>showSection('Home');
+$('modeToggle').onclick=()=>{colourMode=colourMode==='auto'?'pick':'auto';if(colourMode==='auto')autoColours();drawSetup()};
 $('createBtn').onclick=createRoom;
 $('joinBtn').onclick=joinRoom;
 $('joinCode').oninput=e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'')};
@@ -780,7 +790,7 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.
 autoColours();drawSetup();
 // invite links look like ...?room=ABCD
 const inviteCode=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
-if(inviteCode){$('tabOnline').click();$('joinCode').value=inviteCode;}
+if(inviteCode){showSection('Online');$('joinCode').value=inviteCode;}
 </script>
 </body>
 </html>
