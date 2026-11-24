@@ -192,6 +192,19 @@
       <button id="ageAll" class="big alt">Everyone<small>Quiet: no speech, sounds or hints</small></button>
     </div>
 
+    <div id="scInvite" style="display:none">
+      <div class="hero">EXPRESSO</div>
+      <div class="tagline">FLIP. MATCH. MOVE.</div>
+      <h2 style="text-align:center;margin:0">You're invited!</h2>
+      <div class="small" style="text-align:center;color:#6b7785;margin-top:2px">Room <b id="invCode" style="letter-spacing:.15em"></b></div>
+      <input class="field" id="invName" maxlength="14" placeholder="Your name" style="margin-top:14px">
+      <div class="small" style="text-align:center;margin-top:14px;font-weight:700">Who is playing? Tap to join</div>
+      <button id="invKids" class="big" style="margin-top:8px">Join as Kids (4–11)<small>Spoken feelings, sounds and hints</small></button>
+      <button id="invAll" class="big alt">Join as Everyone<small>Quiet: no speech, sounds or hints</small></button>
+      <div class="err" id="invMsg" style="text-align:center"></div>
+      <div style="text-align:center"><button class="linkbtn" id="invOther">Not this room? Start my own game</button></div>
+    </div>
+
     <div id="scHome" style="display:none">
       <div class="hero">EXPRESSO</div>
       <div class="tagline">FLIP. MATCH. MOVE.</div>
@@ -437,8 +450,8 @@ function drawSetup(){
   }
 }
 function showSection(name){
-  if(!ageMode&&name!=='Who'){afterMode=name;name='Who'}   // always ask who is playing first
-  ['Who','Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
+  if(!ageMode&&name!=='Who'&&name!=='Invite'){afterMode=name;name='Who'}   // always ask who is playing first
+  ['Who','Invite','Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
   netMsg('');drawSetup();
 }
 const localSeatInfo=()=>colours.slice(0,nPlayers).map((c,i)=>({col:c,name:(names[i]||'').trim()||('Player '+(i+1))}));
@@ -663,7 +676,10 @@ function openPeer(id){
     p.on('error',e=>{if(!open)rej(e)});
   });
 }
-const netMsg=s=>{$('netMsg').textContent=s||''};
+const netMsg=s=>{
+  $('netMsg').textContent=s||'';$('invMsg').textContent=s||'';
+  if(s&&s!=='Joining…')document.querySelectorAll('#invKids,#invAll').forEach(b=>b.disabled=false);   // let them try again after an error
+};
 
 async function createRoom(){
   const name=($('onName').value||'').trim()||'Player 1';
@@ -1003,8 +1019,18 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.
 autoColours();drawSetup();
 // invite links look like ...?room=ABCD
 const inviteCode=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
-if(inviteCode){$('joinCode').value=inviteCode;afterMode='Online'}   // invite links ask who is playing, then open the join screen
-showSection('Who');
+// an invite link opens its own screen: name, Kids or Everyone, and one tap joins the room
+function joinFromInvite(m){
+  ageMode=m;
+  $('onName').value=($('invName').value||'').trim();$('joinCode').value=inviteCode;
+  document.querySelectorAll('#invKids,#invAll').forEach(b=>b.disabled=true);
+  joinRoom();
+}
+$('invKids').onclick=()=>joinFromInvite('kids');
+$('invAll').onclick=()=>joinFromInvite('all');
+$('invOther').onclick=()=>{try{history.replaceState(null,'',location.pathname)}catch(e){}$('joinCode').value='';showSection('Who')};
+if(inviteCode){$('joinCode').value=inviteCode;$('invCode').textContent=inviteCode;showSection('Invite')}
+else showSection('Who');
 </script>
 </body>
 </html>
