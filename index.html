@@ -99,6 +99,8 @@
   button.big{width:100%;font-size:19px;padding:18px 14px;margin-top:12px;border-radius:18px;background:var(--blue)}
   button.big.alt{background:var(--green)}
   button.linkbtn{background:none;box-shadow:none;color:#44515f;text-decoration:underline;font-weight:700;padding:6px 4px;font-size:14px}
+  button.big small{display:block;font-size:12px;font-weight:600;opacity:.92;margin-top:4px}
+  .modeline{text-align:center;margin-top:26px;font-size:14px;font-weight:700}
   .ageline{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:30px;font-size:14px;font-weight:700}
   #ageNote{font-size:13px!important;line-height:1.4;margin-top:10px;padding:0 8px;min-height:0}
   #scHome details{margin-top:24px!important;padding-top:14px;border-top:1px solid var(--line)}
@@ -181,17 +183,21 @@
   <div class="deco d4" style="background-image:url(assets/glasses_happy.png);border-color:#ED1C24"></div>
   <div class="modal">
 
-    <div id="scHome">
+    <div id="scWho">
+      <div class="hero">EXPRESSO</div>
+      <div class="tagline">FLIP. MATCH. MOVE.</div>
+      <h2 style="text-align:center;margin:0">Who is playing?</h2>
+      <div class="small" style="text-align:center;color:#6b7785;margin-top:2px">Choose one to begin</div>
+      <button id="ageKids" class="big">Kids (4–11)<small>Spoken feelings, sounds and hints</small></button>
+      <button id="ageAll" class="big alt">Everyone<small>Quiet: no speech, sounds or hints</small></button>
+    </div>
+
+    <div id="scHome" style="display:none">
       <div class="hero">EXPRESSO</div>
       <div class="tagline">FLIP. MATCH. MOVE.</div>
       <button id="goLocal" class="big">Play on this device</button>
       <button id="goOnline" class="big alt">Play online with friends</button>
-      <div class="ageline">
-        <span>Players are</span>
-        <button id="ageKids">Kids</button>
-        <button id="ageAll">Everyone</button>
-      </div>
-      <div class="note" id="ageNote" style="min-height:0;text-align:center"></div>
+      <div class="modeline">Playing as <b id="modeName"></b> · <button class="linkbtn" id="changeMode">change</button></div>
       <details style="margin-top:8px"><summary style="font-weight:800;cursor:pointer;font-size:14px;text-align:center">How to play</summary>
       <ul>
         <li>Tiles sit face-down in the middle. Flip one on your turn.</li>
@@ -303,7 +309,8 @@ const AGE_NOTE={
   all:'Starts quiet: game sounds and hints are off. You can switch them on any time.'};
 
 /* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays on its own phone */
-let MODE='local', nPlayers=2, G=null, busy=false, ageMode='kids', sentFlip=false, lastSeat=null;
+let afterMode='Home';
+let MODE='local', nPlayers=2, G=null, busy=false, ageMode=null, sentFlip=false, lastSeat=null;
 let colourMode='auto', names=['','','',''], colours=[];
 const NET={peer:null,conns:{},hostConn:null,myCol:null,code:null,seatIdx:-1};
 let LB={seats:[],inGame:false};
@@ -393,9 +400,7 @@ function pickCol(cols,i,col,n){
 
 /* ---------- setup screen (this device) ---------- */
 function drawSetup(){
-  $('ageKids').className=ageMode==='kids'?'sel':'ghost';
-  $('ageAll').className=ageMode==='all'?'sel':'ghost';
-  $('ageNote').textContent=AGE_NOTE[ageMode];
+  $('modeName').textContent=ageMode==='kids'?'Kids':ageMode==='all'?'Everyone':'';
   $('count').innerHTML='';
   [1,2,3,4].forEach(n=>{
     const b=document.createElement('button');b.textContent=n;b.className=n===nPlayers?'sel':'ghost';
@@ -425,7 +430,8 @@ function drawSetup(){
   }
 }
 function showSection(name){
-  ['Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
+  if(!ageMode&&name!=='Who'){afterMode=name;name='Who'}   // always ask who is playing first
+  ['Who','Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
   netMsg('');drawSetup();
 }
 const localSeatInfo=()=>colours.slice(0,nPlayers).map((c,i)=>({col:c,name:(names[i]||'').trim()||('Player '+(i+1))}));
@@ -943,8 +949,10 @@ $('newBtn').onclick=()=>{
 };
 $('againBtn').onclick=()=>{if(MODE==='guest')return;newGame(lastSeat)};
 $('startBtn').onclick=()=>{MODE='local';$('setup').classList.add('hide');newGame()};
-$('ageKids').onclick=()=>{ageMode='kids';drawSetup()};
-$('ageAll').onclick=()=>{ageMode='all';drawSetup()};
+function pickMode(m){ageMode=m;const next=afterMode;afterMode='Home';showSection(next)}
+$('ageKids').onclick=()=>pickMode('kids');
+$('ageAll').onclick=()=>pickMode('all');
+$('changeMode').onclick=()=>{afterMode='Home';ageMode=null;showSection('Who')};
 $('goLocal').onclick=()=>showSection('Local');
 $('goOnline').onclick=()=>showSection('Online');
 $('backLocal').onclick=()=>showSection('Home');
@@ -964,7 +972,8 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.
 autoColours();drawSetup();
 // invite links look like ...?room=ABCD
 const inviteCode=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
-if(inviteCode){showSection('Online');$('joinCode').value=inviteCode;}
+if(inviteCode){$('joinCode').value=inviteCode;afterMode='Online'}   // invite links ask who is playing, then open the join screen
+showSection('Who');
 </script>
 </body>
 </html>
