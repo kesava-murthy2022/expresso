@@ -118,6 +118,12 @@
   .seat .shuf{background:#eee6d2;color:var(--ink);padding:6px 8px;font-size:12px}
   .err{color:#b3261e;font-size:13px;min-height:18px;margin-top:6px;font-weight:700}
   .codebig{font-size:54px;font-weight:900;letter-spacing:.2em;text-align:center;color:#FFB020;-webkit-text-stroke:2px #7a2a0a;text-shadow:0 4px 0 #c8420f;paint-order:stroke fill;margin:4px 0}
+  .vrow{display:flex;gap:8px;margin-bottom:10px}
+  .vrow button{flex:1;font-size:14px;padding:10px 6px;background:#eee6d2;color:var(--ink);box-shadow:0 4px 0 #d3c8aa}
+  .vrow button.on{background:var(--green);color:#fff;box-shadow:0 4px 0 #2b8a37}
+  .vmsg{color:#b3261e;font-weight:700;min-height:0;margin:-4px 0 8px}
+  .chip.talk,.pk.talk{box-shadow:0 0 0 3px #fff,0 0 0 7px #3BB54A;animation:talk .55s ease-in-out infinite alternate}
+  @keyframes talk{to{transform:scale(1.14)}}
   .cf{position:fixed;top:-16px;width:10px;height:14px;border-radius:3px;z-index:20;pointer-events:none;animation:cfall linear forwards}
   @keyframes cfall{to{top:105vh;transform:translateX(60px) rotate(720deg)}}
   @media (max-width:760px){
@@ -145,6 +151,8 @@
     <div class="box players" id="players"></div>
     <div class="box" id="outBox" style="display:none"><b style="font-size:13px">Out of play</b><div class="tray" id="tray"></div></div>
     <div class="box">
+      <div class="vrow vcRow" style="display:none"><button class="vMic"></button><button class="vSpk"></button></div>
+      <div class="note vmsg"></div>
       <div style="display:flex;gap:8px">
         <button class="ghost" id="setBtn" style="flex:1">⚙ Settings</button>
         <button class="ghost" id="newBtn" style="flex:1">New game</button>
@@ -224,6 +232,8 @@
     <div style="font-size:14px;margin-top:12px;font-weight:800">Players</div>
     <div id="lbSeats"></div>
     <div class="note" id="lbNote"></div>
+    <div class="vrow vcRow" style="display:none"><button class="vMic"></button><button class="vSpk"></button></div>
+    <div class="note vmsg"></div>
     <div id="lbHostBtns">
       <button id="lbShuf" class="ghost" style="width:100%;margin-bottom:8px">Shuffle colours</button>
       <button id="lbStart" style="width:100%;font-size:17px;padding:13px">Start game</button>
@@ -241,6 +251,16 @@
     <p id="winText" style="font-size:14px"></p>
     <button id="againBtn" style="width:100%;font-size:17px;padding:13px">Play again</button>
     <div id="winWait" class="small" style="display:none">Waiting for the host to start the next game…</div>
+  </div>
+</div>
+
+<div class="overlay hide" id="voiceNote" style="z-index:30">
+  <div class="modal" style="text-align:center">
+    <div style="font-size:44px">🎤</div>
+    <h2>Talk to your room</h2>
+    <p class="small" style="line-height:1.5">Only the people in this room can hear you. Nothing is recorded. Your mic and your sound both stay off until you tap them, and you can switch them off any time.<br><br>Use headphones to stop echo. Children under 12 should ask a grown-up first.</p>
+    <button id="voiceOk" style="width:100%;font-size:17px;padding:13px">Got it</button>
+    <button id="voiceNo" class="linkbtn" style="margin-top:6px">Not now</button>
   </div>
 </div>
 
@@ -570,10 +590,11 @@ function update(){
   // one short cue only: before a player has started, tell them what to find. Everything else is shown by the board, sounds and flash.
   $('status').textContent=(!G.winner&&G.phase==='pick'&&!p.started)?`Find the ${p.col} start tile.`:'';
   $('status').style.display=$('status').textContent?'block':'none';
-  $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
+  $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" data-pid="${pl.pid||(pl.id==='host'&&NET.peer?NET.peer.id:pl.id)||''}" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
   $('outBox').style.display=G.out.length?'block':'none';
   $('tray').innerHTML=G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join('');
   $('newBtn').textContent=MODE==='guest'?'Leave room':'New game';
+  drawVoice();
   if(G.winner){
     $('winTitle').textContent=G.winner.title;$('winText').textContent=G.winner.text;
     $('againBtn').style.display=MODE==='guest'?'none':'block';
@@ -588,7 +609,7 @@ function update(){
 function snap(){
   return {gid:G.gid,turn:G.turn,phase:G.phase,busy,status:G.status,log:G.log.slice(0,8),winner:G.winner,
     out:G.out.map(t=>t.img),
-    players:G.players.map(p=>({col:p.col,name:p.name,started:p.started,progress:p.progress,away:p.away,path:p.path})),
+    players:G.players.map(p=>({col:p.col,name:p.name,started:p.started,progress:p.progress,away:p.away,path:p.path,pid:p.id==='host'?NET.peer.id:p.id})),
     tiles:G.tiles.map(t=>({pos:t.pos,state:t.state,img:t.state==='down'?null:t.img}))};
 }
 const CODE_CHARS='ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -604,7 +625,8 @@ function loadPeer(){
 }
 function openPeer(id){
   return new Promise((res,rej)=>{
-    const p=id?new Peer(id,{debug:0}):new Peer({debug:0});
+    const cfg={debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]}};
+    const p=id?new Peer(id,cfg):new Peer(cfg);
     let open=false;
     p.on('open',()=>{open=true;res(p)});
     p.on('error',e=>{if(!open)rej(e)});
@@ -626,6 +648,7 @@ async function createRoom(){
     NET.peer=peer;NET.code=code;MODE='host';NET.seatIdx=0;NET.myCol=null;NET.conns={};
     LB={seats:[{id:'host',name,col:null}],inGame:false};fixColours();
     peer.on('connection',onGuestConn);
+    peer.on('call',onCall);
     peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
     netMsg('');$('setup').classList.add('hide');showLobby();
   }catch(e){
@@ -645,10 +668,12 @@ function pickLobby(i,col){
   LB.seats.forEach((s,k)=>s.col=cols[k]);
 }
 function broadcastLobby(){
+  const seats=LB.seats.map(s=>({name:s.name,col:s.col,pid:seatPid(s)}));
   Object.entries(NET.conns).forEach(([id,c])=>{
     const idx=LB.seats.findIndex(s=>s.id===id);
-    try{if(c.open)c.send({t:'lobby',code:NET.code,seats:LB.seats.map(s=>({name:s.name,col:s.col})),you:idx})}catch(e){}
+    try{if(c.open)c.send({t:'lobby',code:NET.code,seats,you:idx})}catch(e){}
   });
+  connectVoice(seats.map(s=>s.pid));
 }
 function onGuestConn(c){
   NET.conns[c.peer]=c;
@@ -712,6 +737,7 @@ async function joinRoom(){
   try{
     await loadPeer();
     const peer=await openPeer();NET.peer=peer;
+    peer.on('call',onCall);
     const c=peer.connect('expresso-'+code,{reliable:true,serialization:'json'});
     timer=setTimeout(()=>{netMsg("Couldn't reach that room. Check the code, or try again.");$('joinBtn').disabled=false},12000);
     peer.on('error',e=>{clearTimeout(timer);netMsg(e.type==='peer-unavailable'?'No room with that code.':'Connection problem ('+(e.type||'error')+').');$('joinBtn').disabled=false});
@@ -725,6 +751,7 @@ function onGuestGets(m){
   if(m.t==='full'){MODE='local';netMsg(m.why);try{NET.peer.destroy()}catch(e){}}
   else if(m.t==='lobby'){
     LB.seats=m.seats;NET.seatIdx=m.you;NET.code=m.code;
+    connectVoice(m.seats.map(s=>s.pid));
     if(G)G.dead=true;
     $('setup').classList.add('hide');$('winner').classList.add('hide');showLobby();
   }
@@ -748,6 +775,108 @@ function applyState(s){
   update();
 }
 
+/* ---------- voice chat (online rooms only; mic and listening both start OFF) ----------
+   Everyone is connected by voice from the start, but sending silence and playing nothing.
+   Tapping the mic swaps silence for the real microphone; tapping sound unmutes the others. */
+const V={ac:null,silentStream:null,silent:null,micStream:null,micAn:null,micOn:false,listenOn:false,calls:{},audio:{},an:{},ids:[],noted:false};
+function silentStream(){
+  if(!V.silentStream){
+    try{
+      V.ac=new (window.AudioContext||window.webkitAudioContext)();
+      const d=V.ac.createMediaStreamDestination();
+      V.silentStream=d.stream;V.silent=d.stream.getAudioTracks()[0];
+    }catch(e){}
+  }
+  return V.silentStream;
+}
+const outStream=()=>V.micOn&&V.micStream?V.micStream:silentStream();
+const seatPid=s=>s.pid||(s.id==='host'&&NET.peer?NET.peer.id:s.id);
+function connectVoice(ids){
+  if(ids)V.ids=ids;
+  if(!NET.peer||!NET.peer.id)return;
+  const me=NET.peer.id;
+  V.ids.forEach(id=>{
+    if(!id||id===me||V.calls[id]||!(me<id))return;   // the smaller id places the call, so pairs never double up
+    const st=outStream();if(!st)return;
+    try{wireCall(id,NET.peer.call(id,st))}catch(e){}
+  });
+}
+function onCall(call){
+  const st=outStream();if(!st)return;
+  call.answer(st);wireCall(call.peer,call);
+}
+function wireCall(id,call){
+  V.calls[id]=call;
+  call.on('stream',remote=>attachRemote(id,remote));
+  call.on('close',()=>dropVoice(id));
+  call.on('error',()=>dropVoice(id));
+}
+function attachRemote(id,remote){
+  if(V.audio[id]){if(V.audio[id].srcObject!==remote)V.audio[id].srcObject=remote;return}
+  const el=document.createElement('audio');
+  el.autoplay=true;el.playsInline=true;el.muted=!V.listenOn;el.srcObject=remote;el.style.display='none';
+  document.body.appendChild(el);V.audio[id]=el;
+  el.play().catch(()=>{});
+  try{if(V.ac){const an=V.ac.createAnalyser();an.fftSize=256;V.ac.createMediaStreamSource(remote).connect(an);V.an[id]=an}}catch(e){}
+}
+function dropVoice(id){
+  try{if(V.calls[id])V.calls[id].close()}catch(e){}
+  delete V.calls[id];delete V.an[id];
+  if(V.audio[id]){V.audio[id].remove();delete V.audio[id]}
+}
+function swapTrack(track){
+  Object.values(V.calls).forEach(c=>{
+    try{(c.peerConnection.getSenders()||[]).forEach(s=>{if(!s.track||s.track.kind==='audio')s.replaceTrack(track)})}catch(e){}
+  });
+}
+function voiceNoticeOnce(){
+  if(V.noted)return Promise.resolve(true);
+  return new Promise(res=>{
+    $('voiceNote').classList.remove('hide');
+    $('voiceOk').onclick=()=>{V.noted=true;$('voiceNote').classList.add('hide');res(true)};
+    $('voiceNo').onclick=()=>{$('voiceNote').classList.add('hide');res(false)};
+  });
+}
+const voiceMsg=s=>document.querySelectorAll('.vmsg').forEach(e=>{e.textContent=s||''});
+async function toggleMic(){
+  if(!(await voiceNoticeOnce()))return;
+  voiceMsg('');
+  if(V.ac&&V.ac.state==='suspended')V.ac.resume();
+  if(V.micOn){
+    if(V.micStream){V.micStream.getTracks().forEach(t=>t.stop());V.micStream=null}
+    V.micAn=null;swapTrack(V.silent);V.micOn=false;drawVoice();return;
+  }
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    V.micStream=s;swapTrack(s.getAudioTracks()[0]);V.micOn=true;
+    try{if(V.ac){const an=V.ac.createAnalyser();an.fftSize=256;V.ac.createMediaStreamSource(s).connect(an);V.micAn=an}}catch(e){}
+  }catch(e){voiceMsg("Couldn't use the microphone. Allow it in your browser settings.")}
+  drawVoice();
+}
+async function toggleListen(){
+  if(!(await voiceNoticeOnce()))return;
+  voiceMsg('');
+  if(V.ac&&V.ac.state==='suspended')V.ac.resume();
+  V.listenOn=!V.listenOn;
+  Object.values(V.audio).forEach(el=>{el.muted=!V.listenOn;if(V.listenOn)el.play().catch(()=>{})});
+  drawVoice();
+}
+function drawVoice(){
+  document.querySelectorAll('.vMic').forEach(b=>{b.textContent=V.micOn?'🎤 Mic on':'🎤 Mic off';b.classList.toggle('on',V.micOn)});
+  document.querySelectorAll('.vSpk').forEach(b=>{b.textContent=V.listenOn?'🔊 Listening':'🔇 Sound off';b.classList.toggle('on',V.listenOn)});
+  document.querySelectorAll('.vcRow').forEach(e=>e.style.display=MODE==='local'?'none':'flex');
+}
+// the speaker's character pulses while they talk
+const lvl=an=>{const b=new Uint8Array(an.fftSize);an.getByteTimeDomainData(b);let m=0;for(const v of b)m=Math.max(m,Math.abs(v-128));return m};
+setInterval(()=>{
+  const t={};
+  Object.entries(V.an).forEach(([id,an])=>{try{if(lvl(an)>14)t[id]=1}catch(e){}});
+  if(V.micOn&&V.micAn&&NET.peer&&NET.peer.id){try{if(lvl(V.micAn)>14)t[NET.peer.id]=1}catch(e){}}
+  document.querySelectorAll('[data-pid]').forEach(e=>e.classList.toggle('talk',!!t[e.dataset.pid]));
+},200);
+document.querySelectorAll('.vMic').forEach(b=>b.onclick=toggleMic);
+document.querySelectorAll('.vSpk').forEach(b=>b.onclick=toggleListen);
+
 /* ---------- lobby ui ---------- */
 function showLobby(){$('lobby').classList.remove('hide');drawLobby()}
 function drawLobby(){
@@ -755,7 +884,7 @@ function drawLobby(){
   const box=$('lbSeats');box.innerHTML='';
   LB.seats.forEach((s,i)=>{
     const row=document.createElement('div');row.className='seat';
-    const chip=document.createElement('span');chip.className='chip';chip.style.cssText=avStyle(s.col);
+    const chip=document.createElement('span');chip.className='chip';chip.style.cssText=avStyle(s.col);chip.dataset.pid=seatPid(s)||'';
     const nm=document.createElement('span');nm.className='nmx';nm.textContent=s.name+(i===NET.seatIdx?' (you)':'')+(i===0&&MODE!=='host'?' · host':'');
     const pk=document.createElement('div');pk.className='picks';
     ALLC.forEach(c=>{
@@ -769,6 +898,7 @@ function drawLobby(){
     });
     row.append(chip,nm,pk);box.appendChild(row);
   });
+  drawVoice();
   const host=MODE==='host';
   $('lbHostBtns').style.display=host?'block':'none';
   $('lbGuestMsg').style.display=host?'none':'block';
