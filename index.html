@@ -141,6 +141,16 @@
   .tring.urgent{animation:tick .45s ease-in-out infinite alternate}
   @keyframes tick{to{transform:scale(1.09)}}
   #tsec{margin-left:auto;font-weight:900;font-size:22px;min-width:34px;text-align:right}
+  .hctl{display:flex;justify-content:space-between;align-items:center;width:100%;padding:9px 12px;font-size:14px;background:#f4eedd;color:var(--ink);box-shadow:none;border:2px solid #e7dcc3}
+  .hctl b{font-size:12px;letter-spacing:.06em;padding:3px 9px;border-radius:99px;background:#cfc6ad;color:#fff}
+  .hctl.on{border-color:#3BB54A;background:#eef9ef}
+  .hctl.on b{background:#3BB54A}
+  .pl .mt{background:#eee6d2;color:var(--ink);padding:5px 9px;font-size:12px;box-shadow:none;flex:none}
+  .req button.mt{background:#eee6d2;color:var(--ink)}
+  .req.talk{outline:3px solid #3BB54A;outline-offset:-1px;border-radius:8px}
+  #chatMsgs{max-height:170px;overflow:auto;font-size:13px;line-height:1.4;display:flex;flex-direction:column;gap:5px}
+  #chatMsgs .cm{background:#f4eedd;border-radius:10px;padding:6px 10px;word-break:break-word}
+  #chatMsgs .cm b{color:#44515f}
   .homeset{margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
   .homeset summary{font-weight:800;cursor:pointer;font-size:14px;text-align:center}
   .watchbar{position:fixed;left:0;right:0;bottom:0;z-index:12;background:#fff;border-top:3px solid #FFC21F;padding:10px 14px;display:none;box-shadow:0 -4px 16px rgba(0,0,0,.15)}
@@ -187,6 +197,25 @@
     </div>
     <div class="box reqbox" id="reqBox" style="display:none"></div>
     <div class="box players" id="players"></div>
+    <div class="box" id="hostCtl" style="display:none">
+      <b style="font-size:13px">🛡 Host controls</b>
+      <div class="tgls" style="margin:8px 0 0">
+        <button class="hctl" data-hc="chat"><span>💬 Chat for the room</span><b></b></button>
+        <button class="hctl" data-hc="voice"><span>🎤 Voice for the room</span><b></b></button>
+      </div>
+      <div class="note" style="min-height:0;margin-top:6px">Voice OFF mutes everyone's mic and sound. The 🔇 button beside a name mutes just that person.</div>
+    </div>
+    <div class="box" id="chatWrap" style="display:none">
+      <button class="ghost" id="chatBtn" style="width:100%">💬 Chat</button>
+      <div id="chatBox" style="display:none;margin-top:10px">
+        <div id="chatMsgs"></div>
+        <div id="chatRow" style="display:flex;gap:8px;margin-top:8px">
+          <input class="field" id="chatIn" maxlength="140" placeholder="Say something nice…">
+          <button id="chatSend" style="padding:10px 14px">Send</button>
+        </div>
+        <div class="note" id="chatMuted" style="display:none;min-height:0;margin-top:6px">The host muted you.</div>
+      </div>
+    </div>
     <div class="box" id="outBox" style="display:none"><b style="font-size:13px">Out of play</b><div class="tray" id="tray"></div></div>
     <div class="box">
       <div class="vrow vcRow" style="display:none"><button class="vMic"></button><button class="vSpk"></button></div>
@@ -297,6 +326,10 @@
     <div class="vrow vcRow" style="display:none"><button class="vMic"></button><button class="vSpk"></button></div>
     <div class="note vmsg"></div>
     <div id="lbHostBtns">
+      <div class="tgls" style="margin-bottom:8px">
+        <button class="hctl" data-hc="chat"><span>💬 Chat for the room</span><b></b></button>
+        <button class="hctl" data-hc="voice"><span>🎤 Voice for the room</span><b></b></button>
+      </div>
       <button id="lbShuf" class="ghost" style="width:100%;margin-bottom:8px">Shuffle colours</button>
       <button id="lbStart" style="width:100%;font-size:17px;padding:13px">Start game</button>
       <div class="note" style="margin-top:6px">Needs at least 2 players. Up to 4 can join.</div>
@@ -335,6 +368,8 @@
 
 <div class="watchbar" id="watchBar">
   <div style="text-align:center;font-weight:800;font-size:14px" id="watchMsg">👀 You're watching</div>
+  <div class="vrow vcRow wvc" style="display:none;max-width:640px;margin:8px auto 0"><button class="vMic"></button><button class="vSpk"></button></div>
+  <div class="note vmsg" style="text-align:center;margin:0"></div>
   <div class="wrow" id="watchRow">
     <input class="field" id="askNote" maxlength="60" placeholder="Add a comment (optional)">
     <button id="askBtn" style="white-space:nowrap">Ask to join next game</button>
@@ -375,7 +410,9 @@ const TURN_MS=10000;   // the 10-second rule: if you don't flip a tile in time, 
 let MODE='local', nPlayers=2, G=null, busy=false, sentFlip=false, lastSeat=null;
 let colourMode='auto', names=['','','',''], colours=[];
 // watch = people waiting or watching (host side); seen = when each guest last checked in
-const NET={peer:null,conns:{},hostConn:null,myCol:null,code:null,seatIdx:-1,watch:{},seen:{},watching:false,asked:false};
+const NET={peer:null,conns:{},hostConn:null,myCol:null,code:null,seatIdx:-1,watch:{},seen:{},watching:false,asked:false,room:{chat:false,voice:true},muted:{}};
+// RM = the room rules as this device sees them (chat starts OFF; voice is allowed but each person's mic and sound start off)
+let RM={chat:false,voice:true,muted:false},CHAT=[],chatUnread=0;
 let LB={seats:[],inGame:false};
 const $=id=>document.getElementById(id);
 const cap=s=>s[0].toUpperCase()+s.slice(1);
@@ -714,11 +751,12 @@ function update(){
   $('status').style.display=$('status').textContent?'block':'none';
   $('players').innerHTML=G.players.filter(pl=>!pl.removed).map(pl=>{
     const pid=pl.pid||(pl.id==='host'&&NET.peer?NET.peer.id:pl.id)||'';
-    const canKick=MODE==='host'&&pl.id&&pl.id!=='host';   // only the host can remove someone
+    const canKick=MODE==='host'&&pl.id&&pl.id!=='host';   // only the host can remove or mute someone
+    const mute=canKick?`<button class="mt" data-mute="${pid}" title="Mute or unmute">${NET.muted[pid]?'🔇':'🎤'}</button>`:'';
     const lives=G.players.length>1?`<span class="lives">${'♥'.repeat(Math.max(0,3-(pl.misses||0)))}<i>${'♥'.repeat(Math.min(3,pl.misses||0))}</i></span>`:'';
-    return `<div class="pl ${pl===p?'cur':''}${pl.out?' out':''}"><span class="chip" data-pid="${pid}" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span>${lives}<div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.out?'out':pl.away?'left':pl.quiet?'not responding':pl.started?'started':'needs start'}</span>${canKick?`<button class="rm" data-kick="${pid}" title="Remove ${pl.name.replace(/"/g,'')}">✕</button>`:''}</div>`;
+    return `<div class="pl ${pl===p?'cur':''}${pl.out?' out':''}"><span class="chip" data-pid="${pid}" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span>${lives}<div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.out?'out':pl.away?'left':pl.quiet?'not responding':pl.started?'started':'needs start'}</span>${mute}${canKick?`<button class="rm" data-kick="${pid}" title="Remove ${pl.name.replace(/"/g,'')}">✕</button>`:''}</div>`;
   }).join('');
-  renderReqs();drawWatch();
+  renderReqs();drawWatch();renderHostCtl();drawChat();
   $('outBox').style.display=G.out.length?'block':'none';
   $('tray').innerHTML=G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join('');
   $('newBtn').textContent=MODE==='guest'?'Leave room':'New game';
@@ -779,7 +817,7 @@ async function createRoom(){
       try{peer=await openPeer('expresso-'+code)}catch(e){if(e.type!=='unavailable-id')throw e}
     }
     if(!peer)throw new Error('Could not make a room. Please try again.');
-    NET.peer=peer;NET.code=code;MODE='host';NET.seatIdx=0;NET.myCol=null;NET.conns={};NET.watch={};NET.seen={};
+    NET.peer=peer;NET.code=code;MODE='host';NET.seatIdx=0;NET.myCol=null;NET.conns={};NET.watch={};NET.seen={};NET.room={chat:false,voice:true};NET.muted={};RM={chat:false,voice:true,muted:false};CHAT=[];chatUnread=0;
     LB={seats:[{id:'host',name,col:null}],inGame:false};fixColours();
     peer.on('connection',onGuestConn);
     peer.on('call',onCall);
@@ -808,7 +846,7 @@ function broadcastLobby(){
     const c=NET.conns[s.id];
     try{if(c&&c.open)c.send({t:'lobby',code:NET.code,seats,you:idx})}catch(e){}
   });
-  connectVoice(seats.map(s=>s.pid));
+  pushVoice();
 }
 function onGuestConn(c){
   NET.conns[c.peer]=c;NET.seen[c.peer]=Date.now();
@@ -827,10 +865,12 @@ function onHostGets(c,m){
       NET.watch[c.peer]={name,note:'',asked:false,approved:false};
       try{c.send({t:'watch',code:NET.code,why:LB.inGame?'A game is in progress.':'The room is full right now.'})}catch(e){}
       if(G&&!G.dead&&LB.inGame){try{c.send({t:'state',s:snap()})}catch(e){}}
-      renderReqs();return;
+      pushRoom();pushVoice();renderReqs();return;
     }
     if(!LB.seats.some(s=>s.id===c.peer))LB.seats.push({id:c.peer,name,col:null});
-    fixColours();broadcastLobby();drawLobby();
+    fixColours();broadcastLobby();drawLobby();pushRoom();
+  }else if(m.t==='chat'){
+    if(NET.room.chat&&!NET.muted[c.peer])hostChat(c.peer,chatName(c.peer),m.text);   // chat only works when the host has switched it on
   }else if(m.t==='ask'){
     const w=NET.watch[c.peer];
     if(w){w.asked=true;w.note=String(m.note||'').slice(0,60);renderReqs();if($('sfx').checked)sfx('start')}
@@ -845,7 +885,8 @@ function onHostGets(c,m){
 }
 function onGuestGone(c){
   if(!NET.conns[c.peer])return;
-  delete NET.conns[c.peer];delete NET.seen[c.peer];
+  delete NET.conns[c.peer];delete NET.seen[c.peer];delete NET.muted[c.peer];
+  pushVoice();
   if(NET.watch[c.peer]){delete NET.watch[c.peer];renderReqs();return}
   if(LB.inGame&&G&&!G.dead){
     const p=G.players.find(x=>x.id===c.peer);
@@ -873,13 +914,72 @@ function hostToLobby(){
   fixColours();$('winner').classList.add('hide');broadcastLobby();showLobby();
 }
 
+/* ---------- room controls (host), voice for watchers, and chat ---------- */
+const voiceBlocked=()=>MODE!=='local'&&(!RM.voice||RM.muted);
+function pushRoom(){   // host: tell everyone the room rules, and each person whether they are muted
+  Object.entries(NET.conns).forEach(([pid,c])=>{try{if(c.open)c.send({t:'room',chat:NET.room.chat,voice:NET.room.voice,muted:!!NET.muted[pid]})}catch(e){}});
+  RM={chat:NET.room.chat,voice:NET.room.voice,muted:false};
+  applyRoom();
+}
+function pushVoice(){   // host: everyone connected, players and watchers alike, joins the same voice group
+  if(MODE!=='host'||!NET.peer||!NET.peer.id)return;
+  const ids=[NET.peer.id,...Object.keys(NET.conns)];
+  sendAll({t:'voice',ids});connectVoice(ids);
+}
+function applyRoom(){   // carry out what the host decided, on this device
+  if(voiceBlocked()){
+    if(V.micOn)micOff();
+    if(V.listenOn){V.listenOn=false;Object.values(V.audio).forEach(el=>{el.muted=true})}
+  }
+  drawVoice();renderHostCtl();drawChat();
+}
+function renderHostCtl(){
+  $('hostCtl').style.display=MODE==='host'?'block':'none';
+  document.querySelectorAll('.hctl').forEach(b=>{
+    const on=b.dataset.hc==='chat'?NET.room.chat:NET.room.voice;
+    b.classList.toggle('on',on);b.querySelector('b').textContent=on?'ON':'OFF';
+  });
+}
+function chatName(pid){
+  if(pid==='host')return(LB.seats[0]&&LB.seats[0].name)||'Host';
+  const s=LB.seats.find(x=>x.id===pid);if(s)return s.name;
+  const w=NET.watch[pid];return w?w.name:'Guest';
+}
+function hostChat(pid,name,text){
+  text=String(text||'').trim().slice(0,140);if(!text)return;
+  const msg={name,text,pid,ts:Date.now()};
+  sendAll({t:'chat',msg});showChat(msg);
+}
+function showChat(msg){
+  CHAT.push(msg);if(CHAT.length>30)CHAT.shift();   // nothing is stored: the last 30 messages stay on screen until the room closes
+  if($('chatBox').style.display==='none')chatUnread++;
+  drawChat();
+}
+function drawChat(){
+  const on=MODE!=='local'&&RM.chat;
+  $('chatWrap').style.display=on?'block':'none';
+  if(!on)return;
+  $('chatBtn').textContent='💬 Chat'+(chatUnread?` (${chatUnread} new)`:'');
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  $('chatMsgs').innerHTML=CHAT.map(m=>`<div class="cm"><b>${esc(m.name)}:</b> ${esc(m.text)}</div>`).join('');
+  $('chatMsgs').scrollTop=1e6;
+  $('chatRow').style.display=RM.muted?'none':'flex';
+  $('chatMuted').style.display=RM.muted?'block':'none';
+}
+function sendChat(){
+  const t=$('chatIn').value.trim();if(!t||RM.muted)return;
+  $('chatIn').value='';
+  if(MODE==='host')hostChat('host',chatName('host'),t);
+  else if(NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'chat',text:t});
+}
+
 /* host tools: remove a player, answer join requests, and seat allowed watchers in the next game */
 function kick(pid){
   const c=NET.conns[pid];
   try{if(c&&c.open)c.send({t:'kicked'})}catch(e){}
-  delete NET.conns[pid];delete NET.seen[pid];delete NET.watch[pid];
+  delete NET.conns[pid];delete NET.seen[pid];delete NET.watch[pid];delete NET.muted[pid];
   setTimeout(()=>{try{c&&c.close()}catch(e){}},400);
-  dropVoice(pid);
+  dropVoice(pid);pushVoice();
   if(LB.inGame&&G&&!G.dead){
     const p=G.players.find(x=>x.id===pid);
     if(p&&!p.removed){
@@ -915,8 +1015,8 @@ function renderReqs(){
   const rows=ids.map(pid=>{
     const w=NET.watch[pid];
     const label=w.approved?`<b>${esc(w.name)}</b> ✓ allowed for the next game`:w.asked?`<b>${esc(w.name)}</b> wants to join the next game`:`<b>${esc(w.name)}</b> is watching`;
-    const btns=(w.approved?'':`<button class="ok" data-req="allow" data-id="${pid}">Allow</button>`)+(w.asked&&!w.approved?`<button class="no" data-req="decline" data-id="${pid}">Decline</button>`:'')+`<button class="no" data-req="remove" data-id="${pid}" title="Remove">✕</button>`;
-    return `<div class="req"><div>${label}${w.note?`<div class="rq-note">“${esc(w.note)}”</div>`:''}</div><div class="rq-btns">${btns}</div></div>`;
+    const btns=(w.approved?'':`<button class="ok" data-req="allow" data-id="${pid}">Allow</button>`)+(w.asked&&!w.approved?`<button class="no" data-req="decline" data-id="${pid}">Decline</button>`:'')+`<button class="mt" data-req="mute" data-id="${pid}" title="Mute or unmute">${NET.muted[pid]?'🔇':'🎤'}</button><button class="no" data-req="remove" data-id="${pid}" title="Remove">✕</button>`;
+    return `<div class="req" data-pid="${pid}"><div>${label}${w.note?`<div class="rq-note">“${esc(w.note)}”</div>`:''}</div><div class="rq-btns">${btns}</div></div>`;
   }).join('');
   const html=ids.length?'<div style="font-weight:800;font-size:13px;margin-bottom:4px">👀 Waiting to join</div>'+rows:'';
   const host=MODE==='host'&&ids.length>0;
@@ -931,6 +1031,8 @@ function onReqClick(e){
     if(!LB.inGame&&promoteWatchers()){broadcastLobby();drawLobby()}   // room is open: seat them right away
   }else if(b.dataset.req==='decline'){
     w.asked=false;w.approved=false;w.note='';try{if(c&&c.open)c.send({t:'declined'})}catch(x){}
+  }else if(b.dataset.req==='mute'){
+    NET.muted[pid]=!NET.muted[pid];pushRoom();
   }else if(b.dataset.req==='remove'){
     if(confirm('Remove '+w.name+'?'))kick(pid);return;
   }
@@ -990,11 +1092,13 @@ function onGuestGets(m){
   else if(m.t==='lobby'){
     NET.watching=false;drawWatch();
     LB.seats=m.seats;NET.seatIdx=m.you;NET.code=m.code;
-    connectVoice(m.seats.map(s=>s.pid));
     if(G)G.dead=true;
     $('setup').classList.add('hide');$('winner').classList.add('hide');showLobby();
   }
   else if(m.t==='you')NET.myCol=m.col;
+  else if(m.t==='room'){RM={chat:!!m.chat,voice:m.voice!==false,muted:!!m.muted};applyRoom()}
+  else if(m.t==='voice')connectVoice(m.ids);
+  else if(m.t==='chat')showChat(m.msg);
   else if(m.t==='state')applyState(m.s);
   else if(m.t==='fx')doFx(m.k,m.a);
 }
@@ -1087,14 +1191,16 @@ function voiceNoticeOnce(){
   });
 }
 const voiceMsg=s=>document.querySelectorAll('.vmsg').forEach(e=>{e.textContent=s||''});
+function micOff(){
+  if(V.micStream){V.micStream.getTracks().forEach(t=>t.stop());V.micStream=null}
+  V.micAn=null;swapTrack(V.silent);V.micOn=false;
+}
 async function toggleMic(){
+  if(voiceBlocked()){voiceMsg(RM.muted?'The host muted your mic.':'The host turned voice off.');return}
   if(!(await voiceNoticeOnce()))return;
   voiceMsg('');
   if(V.ac&&V.ac.state==='suspended')V.ac.resume();
-  if(V.micOn){
-    if(V.micStream){V.micStream.getTracks().forEach(t=>t.stop());V.micStream=null}
-    V.micAn=null;swapTrack(V.silent);V.micOn=false;drawVoice();return;
-  }
+  if(V.micOn){micOff();drawVoice();return}
   try{
     const s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     V.micStream=s;swapTrack(s.getAudioTracks()[0]);V.micOn=true;
@@ -1103,6 +1209,7 @@ async function toggleMic(){
   drawVoice();
 }
 async function toggleListen(){
+  if(voiceBlocked()){voiceMsg('The host turned voice off.');return}
   if(!(await voiceNoticeOnce()))return;
   voiceMsg('');
   if(V.ac&&V.ac.state==='suspended')V.ac.resume();
@@ -1111,9 +1218,14 @@ async function toggleListen(){
   drawVoice();
 }
 function drawVoice(){
-  document.querySelectorAll('.vMic').forEach(b=>{b.textContent=V.micOn?'🎤 My mic: ON':'🎤 My mic: off';b.classList.toggle('on',V.micOn)});
-  document.querySelectorAll('.vSpk').forEach(b=>{b.textContent=V.listenOn?'🔊 Hearing friends':'🔇 Friends muted';b.classList.toggle('on',V.listenOn)});
-  document.querySelectorAll('.vcRow').forEach(e=>e.style.display=(MODE==='local'||NET.watching)?'none':'flex');
+  const blk=voiceBlocked();
+  document.querySelectorAll('.vMic').forEach(b=>{b.textContent=blk?(RM.muted?'🎤 Muted by host':'🎤 Voice off'):(V.micOn?'🎤 My mic: ON':'🎤 My mic: off');b.classList.toggle('on',V.micOn&&!blk);b.disabled=blk});
+  document.querySelectorAll('.vSpk').forEach(b=>{b.textContent=blk?'🎧 Voice off':(V.listenOn?'🎧 Hear friends: ON':'🎧 Hear friends: off');b.classList.toggle('on',V.listenOn&&!blk);b.disabled=blk});
+  // watchers get their own mic row in the bar at the bottom; everyone else uses the panel and lobby rows
+  document.querySelectorAll('.vcRow').forEach(e=>{
+    const w=e.classList.contains('wvc');
+    e.style.display=MODE==='local'?'none':(w?(NET.watching?'flex':'none'):(NET.watching?'none':'flex'));
+  });
 }
 // the speaker's character pulses while they talk
 const lvl=an=>{const b=new Uint8Array(an.fftSize);an.getByteTimeDomainData(b);let m=0;for(const v of b)m=Math.max(m,Math.abs(v-128));return m};
@@ -1155,7 +1267,7 @@ function drawLobby(){
     }
     box.appendChild(row);
   });
-  renderReqs();drawVoice();
+  renderReqs();renderHostCtl();drawVoice();
   const host=MODE==='host';
   $('lbHostBtns').style.display=host?'block':'none';
   $('lbGuestMsg').style.display=host?'none':'block';
@@ -1248,7 +1360,20 @@ $('hint').onchange=()=>{if(G)update()};
 document.querySelectorAll('.tgl').forEach(b=>b.onclick=()=>{
   const c=$(b.dataset.for);c.checked=!c.checked;drawToggles();saveSettings();if(G)update();
 });
+document.querySelectorAll('.hctl').forEach(b=>b.onclick=()=>{
+  if(MODE!=='host')return;
+  const k=b.dataset.hc;NET.room[k]=!NET.room[k];pushRoom();   // chat and voice for the whole room
+});
+$('chatBtn').onclick=()=>{
+  const box=$('chatBox'),open=box.style.display==='none';
+  box.style.display=open?'block':'none';
+  if(open){chatUnread=0;drawChat();$('chatIn').focus()}
+};
+$('chatSend').onclick=sendChat;
+$('chatIn').onkeydown=e=>{if(e.key==='Enter')sendChat()};
 $('players').onclick=e=>{
+  const mt=e.target.closest('[data-mute]');
+  if(mt&&MODE==='host'){NET.muted[mt.dataset.mute]=!NET.muted[mt.dataset.mute];pushRoom();update();return}
   const b=e.target.closest('[data-kick]');if(!b||MODE!=='host')return;
   const p=G&&G.players.find(x=>x.id===b.dataset.kick);
   if(confirm('Remove '+(p?p.name:'this player')+' from the game?'))kick(b.dataset.kick);
