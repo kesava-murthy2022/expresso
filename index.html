@@ -299,8 +299,8 @@ const PLAYER_NOTE={
   3:'Three players: each fills their own side. The unused character and start tile are taken out of the middle.',
   4:'Four players: each fills their own side.'};
 const AGE_NOTE={
-  kids:'Sounds, spoken feelings and hints are on.',
-  all:'Starts quiet: sounds, voice and hints are off. You can switch them on any time.'};
+  kids:'Sounds, hints and the spoken feeling on each match are on.',
+  all:'Starts quiet: game sounds and hints are off. You can switch them on any time.'};
 
 /* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays on its own phone */
 let MODE='local', nPlayers=2, G=null, busy=false, ageMode='kids', sentFlip=false, lastSeat=null;
@@ -315,6 +315,7 @@ const CHAR_OF={blue:'braids',yellow:'bun',red:'glasses',green:'curly'};
 // switches for game sounds, spoken feelings and the next-space hint
 function drawToggles(){
   document.querySelectorAll('.tgl').forEach(b=>{
+    if(b.dataset.for==='voice')b.style.display=ageMode==='kids'?'flex':'none';   // no speech option for Everyone
     const on=$(b.dataset.for).checked;
     b.classList.toggle('on',on);b.querySelector('b').textContent=on?'ON':'OFF';
   });
@@ -345,7 +346,7 @@ function sfx(kind){
   }catch(e){}
 }
 function speak(text){
-  if(!$('voice').checked||!('speechSynthesis' in window))return;
+  if(ageMode!=='kids'||!$('voice').checked||!('speechSynthesis' in window))return;   // speech is a Kids-mode feature only
   try{
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);
