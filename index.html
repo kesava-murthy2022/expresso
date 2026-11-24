@@ -92,7 +92,10 @@
   button.big{width:100%;font-size:19px;padding:18px 14px;margin-top:12px;border-radius:18px;background:var(--blue)}
   button.big.alt{background:var(--green)}
   button.linkbtn{background:none;box-shadow:none;color:#44515f;text-decoration:underline;font-weight:700;padding:6px 4px;font-size:14px}
-  .ageline{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-size:14px;font-weight:700}
+  .ageline{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:30px;font-size:14px;font-weight:700}
+  #ageNote{font-size:13px!important;line-height:1.4;margin-top:10px;padding:0 8px;min-height:0}
+  #scHome details{margin-top:24px!important;padding-top:14px;border-top:1px solid var(--line)}
+  #scHome details summary{font-size:15px!important}
   .ageline button{padding:6px 14px;font-size:14px;background:#eee6d2;color:var(--ink);box-shadow:0 3px 0 #d3c8aa}
   .ageline button.sel{background:var(--ink);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.35)}
   #modeRow button,#tabs button{font-size:13px;padding:9px 6px}
@@ -256,8 +259,8 @@ const PLAYER_NOTE={
   3:'Three players: each fills their own side. The unused character and start tile are taken out of the middle.',
   4:'Four players: each fills their own side.'};
 const AGE_NOTE={
-  kids:'Kids mode: says every emotion out loud as tiles are flipped, and shows the next space to find.',
-  all:'Everyone mode: quieter. Voice only on matches, and no next-space hint. (Both can be switched on or off during play.)'};
+  kids:'Says each feeling out loud and shows the next space.',
+  all:'Quieter: no hints, and voice only on matches.'};
 
 /* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays on its own phone */
 let MODE='local', nPlayers=2, G=null, busy=false, ageMode='kids', sentFlip=false, lastSeat=null;
