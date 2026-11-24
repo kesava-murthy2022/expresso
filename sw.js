@@ -1,5 +1,6 @@
 // Offline cache: network first (so updates arrive), cache as the fallback.
-const CACHE = 'expresso-v1';
+// Only this site's own files are cached; the online-play service is never touched.
+const CACHE = 'expresso-v2';
 const FACES = ['braids', 'curly', 'glasses', 'bun'].flatMap(c => ['happy', 'angry', 'scared', 'disgust', 'sad'].map(e => `assets/${c}_${e}.png`));
 const FILES = ['./', 'index.html', 'manifest.json', 'assets/wild.png', 'assets/icon-192.png', 'assets/icon-512.png',
   ...['blue', 'yellow', 'green', 'red'].map(c => `assets/start_${c}.png`), ...FACES];
@@ -12,6 +13,7 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request).then(r => {
       const copy = r.clone();
