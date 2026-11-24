@@ -118,6 +118,11 @@
   .seat .shuf{background:#eee6d2;color:var(--ink);padding:6px 8px;font-size:12px}
   .err{color:#b3261e;font-size:13px;min-height:18px;margin-top:6px;font-weight:700}
   .codebig{font-size:54px;font-weight:900;letter-spacing:.2em;text-align:center;color:#FFB020;-webkit-text-stroke:2px #7a2a0a;text-shadow:0 4px 0 #c8420f;paint-order:stroke fill;margin:4px 0}
+  .tgls{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+  .tgl{display:flex;justify-content:space-between;align-items:center;width:100%;padding:9px 12px;font-size:14px;background:#f4eedd;color:var(--ink);box-shadow:none;border:2px solid #e7dcc3}
+  .tgl b{font-size:12px;letter-spacing:.06em;padding:3px 9px;border-radius:99px;background:#cfc6ad;color:#fff}
+  .tgl.on{border-color:#3BB54A;background:#eef9ef}
+  .tgl.on b{background:#3BB54A}
   .vrow{display:flex;gap:8px;margin-bottom:10px}
   .vrow button{flex:1;font-size:14px;padding:10px 6px;background:#eee6d2;color:var(--ink);box-shadow:0 4px 0 #d3c8aa}
   .vrow button.on{background:var(--green);color:#fff;box-shadow:0 4px 0 #2b8a37}
@@ -153,15 +158,15 @@
     <div class="box">
       <div class="vrow vcRow" style="display:none"><button class="vMic"></button><button class="vSpk"></button></div>
       <div class="note vmsg"></div>
-      <div style="display:flex;gap:8px">
-        <button class="ghost" id="setBtn" style="flex:1">⚙ Settings</button>
-        <button class="ghost" id="newBtn" style="flex:1">New game</button>
+      <div class="tgls">
+        <button class="tgl" data-for="sfx"><span>🎵 Game sounds</span><b></b></button>
+        <button class="tgl" data-for="voice"><span>🗣 Say the feelings</span><b></b></button>
+        <button class="tgl" data-for="hint"><span>💡 Show next space</span><b></b></button>
       </div>
-      <div id="setPanel" style="display:none;margin-top:12px">
-        <label class="tg"><input type="checkbox" id="hint" checked> Show next space</label>
-        <label class="tg" style="margin-top:6px"><input type="checkbox" id="voice" checked> Say emotions aloud</label>
-        <label class="tg" style="margin-top:6px"><input type="checkbox" id="sfx" checked> Sound effects</label>
+      <div style="display:none">
+        <input type="checkbox" id="hint"><input type="checkbox" id="voice"><input type="checkbox" id="sfx">
       </div>
+      <button class="ghost" id="newBtn" style="width:100%">New game</button>
     </div>
   </div>
 </div>
@@ -294,8 +299,8 @@ const PLAYER_NOTE={
   3:'Three players: each fills their own side. The unused character and start tile are taken out of the middle.',
   4:'Four players: each fills their own side.'};
 const AGE_NOTE={
-  kids:'Says each feeling out loud and shows the next space.',
-  all:'Quieter: no hints, and voice only on matches.'};
+  kids:'Sounds, spoken feelings and hints are on.',
+  all:'Starts quiet: sounds, voice and hints are off. You can switch them on any time.'};
 
 /* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays on its own phone */
 let MODE='local', nPlayers=2, G=null, busy=false, ageMode='kids', sentFlip=false, lastSeat=null;
@@ -307,6 +312,18 @@ const cap=s=>s[0].toUpperCase()+s.slice(1);
 const shuf=a=>[...a].sort(()=>Math.random()-.5);
 // every colour belongs to a character: the player's face, ringed in their colour
 const CHAR_OF={blue:'braids',yellow:'bun',red:'glasses',green:'curly'};
+// switches for game sounds, spoken feelings and the next-space hint
+function drawToggles(){
+  document.querySelectorAll('.tgl').forEach(b=>{
+    const on=$(b.dataset.for).checked;
+    b.classList.toggle('on',on);b.querySelector('b').textContent=on?'ON':'OFF';
+  });
+}
+// Kids get everything on; Everyone starts quiet and can switch things on
+function applyDefaults(){
+  const k=ageMode==='kids';
+  $('voice').checked=k;$('hint').checked=k;$('sfx').checked=k;drawToggles();
+}
 const avStyle=col=>col?`background-image:url(assets/${CHAR_OF[col]}_happy.png);background-size:cover;background-position:center 20%;border:4px solid ${COL[col]}`:'background:#ddd';
 
 /* ---------- sound, voice, effects (all made in the browser) ---------- */
@@ -443,7 +460,7 @@ function newGame(seatInfo){
   G={gid:Date.now()+'-'+Math.random().toString(36).slice(2),players,tiles,turn:Math.floor(Math.random()*players.length),
      phase:'pick',out:[],log:[],cur:null,status:'',winner:null,dead:false};
   busy=false;
-  $('voice').checked=ageMode==='kids';$('hint').checked=ageMode==='kids';
+  applyDefaults();
   buildBoard();
   const f=players[G.turn];
   say(`${f.name} (${f.col}) goes first. Flip a tile to look for the ${f.col} start tile.`);
@@ -764,7 +781,7 @@ function applyState(s){
   const fresh=!G||G.gid!==s.gid;
   if(fresh){
     G={gid:s.gid,players:s.players,tiles:s.tiles.map(t=>({pos:t.pos,state:t.state,img:t.img})),turn:s.turn,phase:s.phase,out:[],log:[],cur:null,status:'',winner:null,dead:false};
-    $('voice').checked=ageMode==='kids';$('hint').checked=ageMode==='kids';
+    applyDefaults();
     $('lobby').classList.add('hide');$('setup').classList.add('hide');$('winner').classList.add('hide');
     buildBoard();
   }else{
@@ -862,8 +879,8 @@ async function toggleListen(){
   drawVoice();
 }
 function drawVoice(){
-  document.querySelectorAll('.vMic').forEach(b=>{b.textContent=V.micOn?'🎤 Mic on':'🎤 Mic off';b.classList.toggle('on',V.micOn)});
-  document.querySelectorAll('.vSpk').forEach(b=>{b.textContent=V.listenOn?'🔊 Listening':'🔇 Sound off';b.classList.toggle('on',V.listenOn)});
+  document.querySelectorAll('.vMic').forEach(b=>{b.textContent=V.micOn?'🎤 My mic: ON':'🎤 My mic: off';b.classList.toggle('on',V.micOn)});
+  document.querySelectorAll('.vSpk').forEach(b=>{b.textContent=V.listenOn?'🔊 Hearing friends':'🔇 Friends muted';b.classList.toggle('on',V.listenOn)});
   document.querySelectorAll('.vcRow').forEach(e=>e.style.display=MODE==='local'?'none':'flex');
 }
 // the speaker's character pulses while they talk
@@ -915,7 +932,9 @@ async function shareInvite(){
 
 /* ---------- wiring ---------- */
 $('hint').onchange=()=>{if(G)update()};
-$('setBtn').onclick=()=>{const p=$('setPanel');p.style.display=p.style.display==='none'?'block':'none'};
+document.querySelectorAll('.tgl').forEach(b=>b.onclick=()=>{
+  const c=$(b.dataset.for);c.checked=!c.checked;drawToggles();if(G)update();
+});
 $('newBtn').onclick=()=>{
   if(MODE==='guest'){location.reload();return}
   if(MODE==='host'){hostToLobby();return}
