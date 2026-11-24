@@ -143,13 +143,17 @@
       <div class="status" id="status"></div>
     </div>
     <div class="box players" id="players"></div>
-    <div class="box"><b style="font-size:13px">Out of play</b><div class="tray" id="tray">nothing yet</div></div>
-    <div class="box"><b style="font-size:13px">What happened</b><div class="log" id="log"></div></div>
-    <div class="box" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <div><label class="tg"><input type="checkbox" id="hint" checked> Show next space</label>
-      <label class="tg" style="margin-top:4px"><input type="checkbox" id="voice" checked> Say emotions aloud</label>
-      <label class="tg" style="margin-top:4px"><input type="checkbox" id="sfx" checked> Sound effects</label></div>
-      <button class="ghost" id="newBtn">New game</button>
+    <div class="box" id="outBox" style="display:none"><b style="font-size:13px">Out of play</b><div class="tray" id="tray"></div></div>
+    <div class="box">
+      <div style="display:flex;gap:8px">
+        <button class="ghost" id="setBtn" style="flex:1">⚙ Settings</button>
+        <button class="ghost" id="newBtn" style="flex:1">New game</button>
+      </div>
+      <div id="setPanel" style="display:none;margin-top:12px">
+        <label class="tg"><input type="checkbox" id="hint" checked> Show next space</label>
+        <label class="tg" style="margin-top:6px"><input type="checkbox" id="voice" checked> Say emotions aloud</label>
+        <label class="tg" style="margin-top:6px"><input type="checkbox" id="sfx" checked> Sound effects</label>
+      </div>
     </div>
   </div>
 </div>
@@ -565,8 +569,8 @@ function update(){
   $('roomTag').textContent=MODE==='local'?'':'ROOM '+NET.code+(NET.myCol?'  ·  you are '+NET.myCol:'');
   $('status').textContent=G.status||'';
   $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
-  $('tray').innerHTML=G.out.length?G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join(''):'nothing yet';
-  $('log').innerHTML=G.log.slice(0,8).map(l=>`<div>${l.replace(/</g,'&lt;')}</div>`).join('');
+  $('outBox').style.display=G.out.length?'block':'none';
+  $('tray').innerHTML=G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join('');
   $('newBtn').textContent=MODE==='guest'?'Leave room':'New game';
   if(G.winner){
     $('winTitle').textContent=G.winner.title;$('winText').textContent=G.winner.text;
@@ -779,6 +783,7 @@ async function shareInvite(){
 
 /* ---------- wiring ---------- */
 $('hint').onchange=()=>{if(G)update()};
+$('setBtn').onclick=()=>{const p=$('setPanel');p.style.display=p.style.display==='none'?'block':'none'};
 $('newBtn').onclick=()=>{
   if(MODE==='guest'){location.reload();return}
   if(MODE==='host'){hostToLobby();return}
