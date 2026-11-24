@@ -100,6 +100,8 @@
   button.big.alt{background:var(--green)}
   button.linkbtn{background:none;box-shadow:none;color:#44515f;text-decoration:underline;font-weight:700;padding:6px 4px;font-size:14px}
   button.big small{display:block;font-size:12px;font-weight:600;opacity:.92;margin-top:4px}
+  .joinbox{background:#f4eedd;border:2px dashed #cfc6ad;border-radius:16px;padding:10px 10px 8px;text-align:center;margin-top:6px}
+  .joinbox .codebig{margin:2px 0}
   .modeline{text-align:center;margin-top:26px;font-size:14px;font-weight:700}
   .ageline{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:30px;font-size:14px;font-weight:700}
   #ageNote{font-size:13px!important;line-height:1.4;margin-top:10px;padding:0 8px;min-height:0}
@@ -195,12 +197,16 @@
     <div id="scInvite" style="display:none">
       <div class="hero">EXPRESSO</div>
       <div class="tagline">FLIP. MATCH. MOVE.</div>
-      <h2 style="text-align:center;margin:0">You're invited!</h2>
-      <div class="small" style="text-align:center;color:#6b7785;margin-top:2px">Room <b id="invCode" style="letter-spacing:.15em"></b></div>
-      <input class="field" id="invName" maxlength="14" placeholder="Your name" style="margin-top:14px">
-      <div class="small" style="text-align:center;margin-top:14px;font-weight:700">Who is playing? Tap to join</div>
-      <button id="invKids" class="big" style="margin-top:8px">Join as Kids (4–11)<small>Spoken feelings, sounds and hints</small></button>
-      <button id="invAll" class="big alt">Join as Everyone<small>Quiet: no speech, sounds or hints</small></button>
+      <div class="joinbox">
+        <div class="small" style="font-weight:800">🎟 You're joining a friend's game</div>
+        <div class="codebig" style="font-size:46px"><span id="invCode"></span></div>
+        <div class="small" style="color:#6b7785">Room code</div>
+      </div>
+      <div class="small" style="font-weight:800;margin:14px 0 4px">1. Your name</div>
+      <input class="field" id="invName" maxlength="14" placeholder="Type your name">
+      <div class="small" style="font-weight:800;margin:14px 0 0">2. Tap how you'll play to join the room</div>
+      <button id="invKids" class="big" style="margin-top:8px">Join room as Kids (4–11) →<small>Spoken feelings, sounds and hints</small></button>
+      <button id="invAll" class="big alt">Join room as Everyone →<small>Quiet: no speech, sounds or hints</small></button>
       <div class="err" id="invMsg" style="text-align:center"></div>
       <div style="text-align:center"><button class="linkbtn" id="invOther">Not this room? Start my own game</button></div>
     </div>
