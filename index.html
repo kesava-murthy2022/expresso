@@ -53,7 +53,14 @@
   h1{margin:0;font-size:30px;letter-spacing:.04em;color:#FFB020;-webkit-text-stroke:1.5px #7a2a0a;text-shadow:0 3px 0 #c8420f;paint-order:stroke fill}
   h1 small{display:block;font-size:13px;font-weight:800;color:#22A8E1;letter-spacing:.08em;-webkit-text-stroke:0;text-shadow:none}
   .turn{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
-  .chip{width:26px;height:26px;border-radius:50%;flex:none}
+  .chip{width:36px;height:36px;border-radius:50%;flex:none;box-sizing:border-box;background-size:cover;background-position:center 20%}
+  .modal{position:relative;z-index:1}
+  #setup .deco{position:fixed;width:min(30vw,250px);aspect-ratio:1;border-radius:50%;border:8px solid;background-size:cover;background-position:center 20%;pointer-events:none;box-shadow:0 8px 24px rgba(60,40,0,.18);animation:bob 4s ease-in-out infinite}
+  #setup .d1{left:-3%;top:-3%;animation-delay:0s}
+  #setup .d2{right:-3%;top:-3%;animation-delay:-1s}
+  #setup .d3{left:-3%;bottom:-3%;animation-delay:-2s}
+  #setup .d4{right:-3%;bottom:-3%;animation-delay:-3s}
+  @keyframes bob{50%{transform:translateY(-10px)}}
   .status{margin-top:6px;min-height:38px;font-size:15px;font-weight:600;line-height:1.35}
   .roomtag{font-size:12px;font-weight:800;color:#6b7785;letter-spacing:.1em;margin-top:2px}
   button{font:inherit;font-weight:800;border:0;border-radius:14px;padding:10px 14px;cursor:pointer;background:var(--ink);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .1s,box-shadow .1s}
@@ -85,7 +92,7 @@
   .count button.sel{background:var(--blue)}
   .note{font-size:12px;color:#6b7785;min-height:32px}
   .small{font-size:13px}
-  #setup{background:radial-gradient(circle at 12% 18%,#ffe9a8 0 9%,transparent 9.5%),radial-gradient(circle at 88% 12%,#bfe7fa 0 11%,transparent 11.5%),radial-gradient(circle at 92% 88%,#ffc7c9 0 10%,transparent 10.5%),radial-gradient(circle at 8% 90%,#c9efce 0 10%,transparent 10.5%),#fff7e6}
+  #setup{background:#fff7e6}
   #setup .modal{box-shadow:0 6px 24px rgba(60,40,0,.18)}
   .hero{font-size:46px;font-weight:900;text-align:center;letter-spacing:.04em;color:#FFB020;-webkit-text-stroke:2px #7a2a0a;text-shadow:0 4px 0 #c8420f;paint-order:stroke fill;line-height:1.1}
   .tagline{text-align:center;font-weight:800;color:#22A8E1;letter-spacing:.12em;font-size:13px;margin:2px 0 18px}
@@ -151,6 +158,10 @@
 
 <!-- setup: one simple choice per screen -->
 <div class="overlay" id="setup">
+  <div class="deco d1" style="background-image:url(assets/braids_happy.png);border-color:#22A8E1"></div>
+  <div class="deco d2" style="background-image:url(assets/bun_happy.png);border-color:#FFC21F"></div>
+  <div class="deco d3" style="background-image:url(assets/curly_happy.png);border-color:#3BB54A"></div>
+  <div class="deco d4" style="background-image:url(assets/glasses_happy.png);border-color:#ED1C24"></div>
   <div class="modal">
 
     <div id="scHome">
@@ -270,6 +281,9 @@ let LB={seats:[],inGame:false};
 const $=id=>document.getElementById(id);
 const cap=s=>s[0].toUpperCase()+s.slice(1);
 const shuf=a=>[...a].sort(()=>Math.random()-.5);
+// every colour belongs to a character: the player's face, ringed in their colour
+const CHAR_OF={blue:'braids',yellow:'bun',red:'glasses',green:'curly'};
+const avStyle=col=>col?`background-image:url(assets/${CHAR_OF[col]}_happy.png);background-size:cover;background-position:center 20%;border:4px solid ${COL[col]}`:'background:#ddd';
 
 /* ---------- sound, voice, effects (all made in the browser) ---------- */
 let AC=null;
@@ -350,13 +364,13 @@ function drawSetup(){
   const box=$('seats');box.innerHTML='';
   for(let i=0;i<nPlayers;i++){
     const row=document.createElement('div');row.className='seat';
-    const chip=document.createElement('span');chip.className='chip';chip.style.background=COL[colours[i]];
+    const chip=document.createElement('span');chip.className='chip';chip.style.cssText=avStyle(colours[i]);
     const inp=document.createElement('input');inp.placeholder='Player '+(i+1);inp.maxLength=14;inp.value=names[i];
     inp.oninput=()=>{names[i]=inp.value};
     row.append(chip,inp);
     if(colourMode==='pick'){
       const pk=document.createElement('div');pk.className='picks';
-      ALLC.forEach(c=>{const b=document.createElement('button');b.className='pk'+(colours[i]===c?' on':'');b.style.background=COL[c];b.title=c;
+      ALLC.forEach(c=>{const b=document.createElement('button');b.className='pk'+(colours[i]===c?' on':'');b.style.cssText=avStyle(c);b.title=CHAR_NAME[CHAR_OF[c]];
         b.onclick=()=>{pickCol(colours,i,c,nPlayers);drawSetup()};pk.appendChild(b)});
       row.appendChild(pk);
     }
@@ -546,11 +560,11 @@ function update(){
     e.classList.toggle('started',!!pl&&pl.started);
     e.classList.toggle('active',!!pl&&pl===p&&!G.winner);
   });
-  $('turnChip').style.background=COL[p.col];
+  $('turnChip').style.cssText=avStyle(p.col);
   $('turnName').textContent=p.name+"'s turn"+(MODE!=='local'&&myTurn()?'  ← you!':'');
   $('roomTag').textContent=MODE==='local'?'':'ROOM '+NET.code+(NET.myCol?'  ·  you are '+NET.myCol:'');
   $('status').textContent=G.status||'';
-  $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" style="background:${COL[pl.col]}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
+  $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
   $('tray').innerHTML=G.out.length?G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join(''):'nothing yet';
   $('log').innerHTML=G.log.slice(0,8).map(l=>`<div>${l.replace(/</g,'&lt;')}</div>`).join('');
   $('newBtn').textContent=MODE==='guest'?'Leave room':'New game';
@@ -735,11 +749,11 @@ function drawLobby(){
   const box=$('lbSeats');box.innerHTML='';
   LB.seats.forEach((s,i)=>{
     const row=document.createElement('div');row.className='seat';
-    const chip=document.createElement('span');chip.className='chip';chip.style.background=COL[s.col]||'#ccc';
+    const chip=document.createElement('span');chip.className='chip';chip.style.cssText=avStyle(s.col);
     const nm=document.createElement('span');nm.className='nmx';nm.textContent=s.name+(i===NET.seatIdx?' (you)':'')+(i===0&&MODE!=='host'?' · host':'');
     const pk=document.createElement('div');pk.className='picks';
     ALLC.forEach(c=>{
-      const b=document.createElement('button');b.className='pk'+(s.col===c?' on':'');b.style.background=COL[c];b.title=c;
+      const b=document.createElement('button');b.className='pk'+(s.col===c?' on':'');b.style.cssText=avStyle(c);b.title=CHAR_NAME[CHAR_OF[c]];
       b.disabled=i!==NET.seatIdx;
       b.onclick=()=>{
         if(MODE==='host'){pickLobby(i,c);broadcastLobby();drawLobby()}
