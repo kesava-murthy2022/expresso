@@ -239,7 +239,14 @@
   <div class="modal">
     <h2 style="text-align:center">Room</h2>
     <div class="codebig" id="lbCode">----</div>
-    <button id="lbShare" class="ghost" style="width:100%">Share invite link</button>
+    <div class="small" style="margin:2px 0 6px;color:#6b7785;text-align:center">Send this link or code to your friends</div>
+    <input class="field" id="lbLink" readonly style="font-size:13px;text-align:center">
+    <div class="vrow" style="margin:8px 0 0">
+      <button id="lbCopyLink">Copy link</button>
+      <button id="lbCopyCode">Copy code</button>
+      <button id="lbShare" style="display:none">Share…</button>
+    </div>
+    <div class="note" id="copyMsg" style="min-height:0;margin:6px 0 0;text-align:center"></div>
     <div style="font-size:14px;margin-top:12px;font-weight:800">Players</div>
     <div id="lbSeats"></div>
     <div class="note" id="lbNote"></div>
@@ -905,6 +912,7 @@ document.querySelectorAll('.vSpk').forEach(b=>b.onclick=toggleListen);
 function showLobby(){$('lobby').classList.remove('hide');drawLobby()}
 function drawLobby(){
   $('lbCode').textContent=NET.code||'----';
+  $('lbLink').value=NET.code?inviteUrl():'';
   const box=$('lbSeats');box.innerHTML='';
   LB.seats.forEach((s,i)=>{
     const row=document.createElement('div');row.className='seat';
@@ -929,12 +937,30 @@ function drawLobby(){
   $('lbStart').disabled=LB.seats.length<2;
   $('lbNote').textContent=LB.seats.length===2?'Two players sit opposite each other, so picking a colour moves your friend to the opposite one.':'Tap a colour dot on your own row to change your colour.';
 }
-async function shareInvite(){
-  const url=location.origin+location.pathname+'?room='+NET.code;
-  try{
-    if(navigator.share){await navigator.share({title:'Expresso',text:'Join my Expresso game! Code: '+NET.code,url});return}
-    await navigator.clipboard.writeText(url);$('lbShare').textContent='Link copied!';setTimeout(()=>$('lbShare').textContent='Share invite link',1800);
-  }catch(e){prompt('Copy this invite link:',url)}
+const inviteUrl=()=>location.origin+location.pathname+'?room='+NET.code;
+// copies for real, and only says "Copied" if it worked; otherwise selects the link so Ctrl+C works
+async function copyText(text,what){
+  let ok=false;
+  try{await navigator.clipboard.writeText(text);ok=true}catch(e){}
+  if(!ok){
+    try{
+      const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');
+      ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);
+      ta.focus();ta.select();ta.setSelectionRange(0,text.length);
+      ok=document.execCommand('copy');ta.remove();
+    }catch(e){}
+  }
+  const m=$('copyMsg');
+  if(ok)m.textContent=what+' copied. Now paste it into a message.';
+  else{
+    const l=$('lbLink');l.value=text;l.focus();l.select();
+    m.textContent="Couldn't copy automatically. The text is selected: press Ctrl+C (or hold and tap Copy).";
+  }
+  setTimeout(()=>{if($('copyMsg').textContent)$('copyMsg').textContent=''},6000);
+}
+function shareInvite(){
+  const url=inviteUrl();
+  if(navigator.share)navigator.share({title:'Expresso',text:'Join my Expresso game! Code: '+NET.code,url}).catch(()=>{});
 }
 
 /* ---------- wiring ---------- */
@@ -962,6 +988,11 @@ $('createBtn').onclick=createRoom;
 $('joinBtn').onclick=joinRoom;
 $('joinCode').oninput=e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'')};
 $('lbShare').onclick=shareInvite;
+$('lbCopyLink').onclick=()=>copyText(inviteUrl(),'Link');
+$('lbCopyCode').onclick=()=>copyText(NET.code,'Code');
+$('lbLink').onclick=e=>e.target.select();
+// the phone share sheet is useful on touch devices; on a computer it only gets in the way
+if(navigator.share&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)$('lbShare').style.display='';
 $('lbShuf').onclick=()=>{LB.seats.forEach(s=>s.col=null);const cols=shuf(ALLC);
   if(LB.seats.length===2){LB.seats[0].col=cols[0];LB.seats[1].col=OPP[cols[0]]}else LB.seats.forEach((s,i)=>s.col=cols[i]);
   broadcastLobby();drawLobby()};
