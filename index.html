@@ -275,7 +275,8 @@
         <li>Tiles sit face-down in the middle. Flip one on your turn.</li>
         <li>First find <b>your colour start tile</b>.</li>
         <li>Then collect your character's emotions <b>in order</b> along your side. Keep flipping while you are right.</li>
-        <li>A miss flashes red, the tile flips back, and the next player goes. Remember where it was!</li>
+        <li>A wrong tile flashes red, flips back, and the next player goes. Remember where it was!</li>
+        <li>Be quick: you have 20 seconds to flip. Miss 3 turns in a row and you are out.</li>
         <li><b>Expresso tile</b>: one extra flip, then it leaves the game.</li>
       </ul></details>
     </div>
@@ -405,7 +406,7 @@ const PLAYER_NOTE={
   2:'Two players sit opposite (blue and red, or yellow and green). Each fills two sides: own side, then the next one clockwise.',
   3:'Three players: each fills their own side. The unused character and start tile are taken out of the middle.',
   4:'Four players: each fills their own side.'};
-const TURN_MS=10000;   // the 10-second rule: if you don't flip a tile in time, the next player goes
+const TURN_MS=20000;   // the 20-second rule: if you don't flip a tile in time, the next player goes. 3 idle turns in a row and you are out
 /* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays (or watches) on its own phone */
 let MODE='local', nPlayers=2, G=null, busy=false, sentFlip=false, lastSeat=null;
 let colourMode='auto', names=['','','',''], colours=[];
@@ -557,7 +558,7 @@ function newGame(seatInfo){
     }
     const path=[];
     sides.forEach(sd=>sd.order.forEach((emo,i)=>path.push({char:sd.char,emo,r:sd.cells[i][0],c:sd.cells[i][1]})));
-    return {id:s.id,col:s.col,name:s.name,started:false,path,progress:0,away:false,misses:0,out:false};
+    return {id:s.id,col:s.col,name:s.name,started:false,path,progress:0,away:false,strikes:0,out:false};
   });
   const usedChars=new Set();players.forEach(p=>p.path.forEach(s=>usedChars.add(s.char)));
   const tiles=[];
@@ -625,6 +626,7 @@ function onCardClick(t){
 function flip(t){
   if(busy||G.phase!=='pick'||t.state!=='down')return;
   const g=G;
+  curP().strikes=0;   // they are playing, so their idle count starts again
   if(!G.t0&&G.players.length===1)G.t0=Date.now();   // solo: the stopwatch starts on the first flip
   busy=true;t.state='up';G.cur=t;update();fx('sfx','flip');
   setTimeout(()=>{if(G===g&&!g.dead)resolve(t)},750);
@@ -666,10 +668,7 @@ function resolve(t){
   }
   // miss: red flash, then flip back and pass automatically
   logit(`${name} flipped ${describe(t)}: no match.`);
-  p.misses=(p.misses||0)+1;
-  if(G.players.length>1&&p.misses>=3){   // three strikes: their cards vanish and they can only watch
-    p.out=true;G.eliminated=true;logit(`${name} is out after 3 misses.`);
-  }
+  // a wrong flip costs nothing: this is a memory game, so wrong flips are how everyone learns where the tiles are
   G.phase='miss';busy=true;
   say(`${describe(t)}: not what ${name} needs. Remember where it is!`);
   update();
@@ -693,7 +692,12 @@ function armTimer(){if(G)G.deadline=Date.now()+TURN_MS}
 const timerOn=()=>G&&!G.winner&&G.phase==='pick'&&!busy&&G.deadline&&G.players.filter(p=>!p.away&&!p.removed&&!p.out).length>1;
 setInterval(()=>{
   if(!G||G.dead||MODE==='guest'||!timerOn()||Date.now()<G.deadline)return;
-  const p=curP();logit(p.name+' ran out of time.');fx('sfx','miss');nextTurn();   // the host (or the shared screen) moves the turn on
+  // out of time: the turn passes. Three of these in a row means they walked away, so they are out and can only watch.
+  const p=curP();
+  p.strikes=(p.strikes||0)+1;
+  logit(p.name+' ran out of time.');fx('sfx','miss');
+  if(G.players.length>1&&p.strikes>=3){p.out=true;G.eliminated=true;logit(`${p.name} is out after 3 missed turns.`)}
+  afterMiss();   // the host (or the shared screen) moves things on; the last player standing wins
 },250);
 setInterval(()=>{
   const r=$('tring');
@@ -753,7 +757,8 @@ function update(){
     const pid=pl.pid||(pl.id==='host'&&NET.peer?NET.peer.id:pl.id)||'';
     const canKick=MODE==='host'&&pl.id&&pl.id!=='host';   // only the host can remove or mute someone
     const mute=canKick?`<button class="mt" data-mute="${pid}" title="Mute or unmute">${NET.muted[pid]?'🔇':'🎤'}</button>`:'';
-    const lives=G.players.length>1?`<span class="lives">${'♥'.repeat(Math.max(0,3-(pl.misses||0)))}<i>${'♥'.repeat(Math.min(3,pl.misses||0))}</i></span>`:'';
+    const st=pl.strikes||0;   // hearts only appear once someone has missed a turn
+    const lives=(G.players.length>1&&st>0)?`<span class="lives" title="Missed turns. 3 in a row and you are out">${'♥'.repeat(Math.max(0,3-st))}<i>${'♥'.repeat(Math.min(3,st))}</i></span>`:'';
     return `<div class="pl ${pl===p?'cur':''}${pl.out?' out':''}"><span class="chip" data-pid="${pid}" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span>${lives}<div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.out?'out':pl.away?'left':pl.quiet?'not responding':pl.started?'started':'needs start'}</span>${mute}${canKick?`<button class="rm" data-kick="${pid}" title="Remove ${pl.name.replace(/"/g,'')}">✕</button>`:''}</div>`;
   }).join('');
   renderReqs();drawWatch();renderHostCtl();drawChat();
@@ -778,7 +783,7 @@ function update(){
 function snap(){
   return {gid:G.gid,turn:G.turn,phase:G.phase,busy,left:Math.max(0,(G.deadline||0)-Date.now()),status:G.status,log:G.log.slice(0,8),winner:G.winner,
     out:G.out.map(t=>t.img),
-    players:G.players.map(p=>({col:p.col,name:p.name,started:p.started,progress:p.progress,away:p.away,quiet:!!p.quiet,removed:!!p.removed,misses:p.misses||0,out:!!p.out,path:p.path,pid:p.id==='host'?NET.peer.id:p.id})),
+    players:G.players.map(p=>({col:p.col,name:p.name,started:p.started,progress:p.progress,away:p.away,quiet:!!p.quiet,removed:!!p.removed,strikes:p.strikes||0,out:!!p.out,path:p.path,pid:p.id==='host'?NET.peer.id:p.id})),
     tiles:G.tiles.map(t=>({pos:t.pos,state:t.state,img:t.state==='down'?null:t.img}))};
 }
 const CODE_CHARS='ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -901,7 +906,7 @@ function onGuestGone(c){
 function hostStart(){
   if(LB.seats.length<2)return;
   LB.inGame=true;
-  NET.myCol=LB.seats[0].col;
+  NET.myCol=(LB.seats.find(s=>s.id==='host')||LB.seats[0]).col;
   LB.seats.forEach(s=>{if(s.id!=='host'&&NET.conns[s.id]&&NET.conns[s.id].open)NET.conns[s.id].send({t:'you',col:s.col})});
   $('lobby').classList.add('hide');
   newGame(LB.seats.map(s=>({id:s.id,col:s.col,name:s.name})));
@@ -941,7 +946,7 @@ function renderHostCtl(){
   });
 }
 function chatName(pid){
-  if(pid==='host')return(LB.seats[0]&&LB.seats[0].name)||'Host';
+  if(pid==='host'){const h=LB.seats.find(x=>x.id==='host');return h?h.name:'Host'}
   const s=LB.seats.find(x=>x.id===pid);if(s)return s.name;
   const w=NET.watch[pid];return w?w.name:'Guest';
 }
@@ -1004,6 +1009,8 @@ function hostPlayAgain(){
   // same players still here, plus anyone the host allowed; goes straight in unless the group changed
   const keep=G.players.filter(p=>!p.away&&!p.removed&&(p.id==='host'||(NET.conns[p.id]&&NET.conns[p.id].open)));
   LB.seats=keep.map(p=>({id:p.id,name:p.name,col:p.col}));
+  LB.seats.sort((a,b)=>(b.id==='host')-(a.id==='host'));   // the host's seat must stay first, or the host's own colour gets mixed up
+  NET.seatIdx=0;
   const added=promoteWatchers();
   fixColours();
   G.dead=true;LB.inGame=false;
