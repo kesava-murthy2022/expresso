@@ -61,7 +61,7 @@
   #setup .d3{left:-3%;bottom:-3%;animation-delay:-2s}
   #setup .d4{right:-3%;bottom:-3%;animation-delay:-3s}
   @keyframes bob{50%{transform:translateY(-10px)}}
-  .status{margin-top:6px;min-height:38px;font-size:15px;font-weight:600;line-height:1.35}
+  .status{margin-top:6px;font-size:15px;font-weight:600;line-height:1.35}
   .roomtag{font-size:12px;font-weight:800;color:#6b7785;letter-spacing:.1em;margin-top:2px}
   button{font:inherit;font-weight:800;border:0;border-radius:14px;padding:10px 14px;cursor:pointer;background:var(--ink);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .1s,box-shadow .1s}
   button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
@@ -498,7 +498,7 @@ function resolve(t){
     fx('sfx','wild');
     t.state='out';G.out.push(t);G.cur=null;
     logit(`${name} flipped the Expresso tile: one extra flip!`);
-    say(`${name} found the Expresso tile! The tile leaves the game. Flip once more.`);
+    say('');
     busy=false;update();return;
   }
   if(!p.started){
@@ -567,7 +567,9 @@ function update(){
   $('turnChip').style.cssText=avStyle(p.col);
   $('turnName').textContent=p.name+"'s turn"+(MODE!=='local'&&myTurn()?'  ← you!':'');
   $('roomTag').textContent=MODE==='local'?'':'ROOM '+NET.code+(NET.myCol?'  ·  you are '+NET.myCol:'');
-  $('status').textContent=G.status||'';
+  // one short cue only: before a player has started, tell them what to find. Everything else is shown by the board, sounds and flash.
+  $('status').textContent=(!G.winner&&G.phase==='pick'&&!p.started)?`Find the ${p.col} start tile.`:'';
+  $('status').style.display=$('status').textContent?'block':'none';
   $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
   $('outBox').style.display=G.out.length?'block':'none';
   $('tray').innerHTML=G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join('');
