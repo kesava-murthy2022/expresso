@@ -127,6 +127,34 @@
   .tgl b{font-size:12px;letter-spacing:.06em;padding:3px 9px;border-radius:99px;background:#cfc6ad;color:#fff}
   .tgl.on{border-color:#3BB54A;background:#eef9ef}
   .tgl.on b{background:#3BB54A}
+  .pl{flex-wrap:wrap;row-gap:5px}
+  .pl .dots{order:9;flex:1 1 100%;margin-left:46px}
+  .pl .st{margin-left:auto}
+  .pl .rm{margin-left:0!important}
+  .lives{color:#ED1C24;font-size:12px;letter-spacing:1px;flex:none}
+  .lives i{color:#d9d1bb;font-style:normal}
+  .pl.out{opacity:.45}
+  .pl .nm{width:70px!important}
+  /* the 10-second ring: a coloured circle around the player's face that drains away */
+  .tring{--p:360deg;--c:#cfc6ad;width:62px;height:62px;border-radius:50%;padding:6px;flex:none;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--c) var(--p),#eadfc6 0)}
+  .tring .chip{width:50px;height:50px}
+  .tring.urgent{animation:tick .45s ease-in-out infinite alternate}
+  @keyframes tick{to{transform:scale(1.09)}}
+  #tsec{margin-left:auto;font-weight:900;font-size:22px;min-width:34px;text-align:right}
+  .homeset{margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
+  .homeset summary{font-weight:800;cursor:pointer;font-size:14px;text-align:center}
+  .watchbar{position:fixed;left:0;right:0;bottom:0;z-index:12;background:#fff;border-top:3px solid #FFC21F;padding:10px 14px;display:none;box-shadow:0 -4px 16px rgba(0,0,0,.15)}
+  .watchbar .wrow{display:flex;gap:8px;max-width:640px;margin:8px auto 0}
+  .reqbox{background:#fff6d6;border:2px solid #FFC21F}
+  .req{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed #e7dcc3;font-size:14px}
+  .req:last-child{border-bottom:0}
+  .req .rq-note{font-size:12px;color:#6b7785;font-style:italic;margin-top:2px}
+  .req .rq-btns{display:flex;gap:6px;flex:none}
+  .req button,.pl .rm{padding:6px 10px;font-size:12px;box-shadow:none}
+  .req button.ok{background:#3BB54A}
+  .req button.no{background:#eee6d2;color:var(--ink)}
+  .pl .rm{background:#eee6d2;color:#b3261e;margin-left:auto;flex:none}
+  .seat .rm{background:#eee6d2;color:#b3261e;padding:5px 9px;font-size:12px;box-shadow:none;flex:none}
   .vrow{display:flex;gap:8px;margin-bottom:10px}
   .vrow button{flex:1;font-size:14px;padding:10px 6px;background:#eee6d2;color:var(--ink);box-shadow:0 4px 0 #d3c8aa}
   .vrow button.on{background:var(--green);color:#fff;box-shadow:0 4px 0 #2b8a37}
@@ -153,10 +181,11 @@
   <div class="panel">
     <div class="box"><h1>EXPRESSO <small>FLIP. MATCH. MOVE.</small></h1></div>
     <div class="box">
-      <div class="turn"><span class="chip" id="turnChip"></span><span id="turnName"></span></div>
+      <div class="turn"><span class="tring" id="tring"><span class="chip" id="turnChip"></span></span><span id="turnName"></span><span id="tsec"></span></div>
       <div class="roomtag" id="roomTag"></div>
       <div class="status" id="status"></div>
     </div>
+    <div class="box reqbox" id="reqBox" style="display:none"></div>
     <div class="box players" id="players"></div>
     <div class="box" id="outBox" style="display:none"><b style="font-size:13px">Out of play</b><div class="tray" id="tray"></div></div>
     <div class="box">
@@ -185,15 +214,6 @@
   <div class="deco d4" style="background-image:url(assets/glasses_happy.png);border-color:#ED1C24"></div>
   <div class="modal">
 
-    <div id="scWho">
-      <div class="hero">EXPRESSO</div>
-      <div class="tagline">FLIP. MATCH. MOVE.</div>
-      <h2 style="text-align:center;margin:0">Who is playing?</h2>
-      <div class="small" style="text-align:center;color:#6b7785;margin-top:2px">Choose one to begin</div>
-      <button id="ageKids" class="big">Kids (4–11)<small>Spoken feelings, sounds and hints</small></button>
-      <button id="ageAll" class="big alt">Everyone<small>Quiet: no speech, sounds or hints</small></button>
-    </div>
-
     <div id="scInvite" style="display:none">
       <div class="hero">EXPRESSO</div>
       <div class="tagline">FLIP. MATCH. MOVE.</div>
@@ -204,19 +224,23 @@
       </div>
       <div class="small" style="font-weight:800;margin:14px 0 4px">1. Your name</div>
       <input class="field" id="invName" maxlength="14" placeholder="Type your name">
-      <div class="small" style="font-weight:800;margin:14px 0 0">2. Tap how you'll play to join the room</div>
-      <button id="invKids" class="big" style="margin-top:8px">Join room as Kids (4–11) →<small>Spoken feelings, sounds and hints</small></button>
-      <button id="invAll" class="big alt">Join room as Everyone →<small>Quiet: no speech, sounds or hints</small></button>
+      <button id="invJoin" class="big" style="margin-top:14px">2. Join the room →</button>
       <div class="err" id="invMsg" style="text-align:center"></div>
       <div style="text-align:center"><button class="linkbtn" id="invOther">Not this room? Start my own game</button></div>
     </div>
 
-    <div id="scHome" style="display:none">
+    <div id="scHome">
       <div class="hero">EXPRESSO</div>
       <div class="tagline">FLIP. MATCH. MOVE.</div>
       <button id="goLocal" class="big">Play on this device</button>
       <button id="goOnline" class="big alt">Play online with friends</button>
-      <div class="modeline">Playing as <b id="modeName"></b> · <button class="linkbtn" id="changeMode">change</button></div>
+      <details class="homeset"><summary>⚙ Sound &amp; voice settings <span style="font-weight:600;color:#6b7785">(all off)</span></summary>
+        <div class="tgls" style="margin-top:10px">
+          <button class="tgl" data-for="sfx"><span>🎵 Game sounds</span><b></b></button>
+          <button class="tgl" data-for="voice"><span>🗣 Say the feelings aloud</span><b></b></button>
+          <button class="tgl" data-for="hint"><span>💡 Show next space</span><b></b></button>
+        </div>
+      </details>
       <details style="margin-top:8px"><summary style="font-weight:800;cursor:pointer;font-size:14px;text-align:center">How to play</summary>
       <ul>
         <li>Tiles sit face-down in the middle. Flip one on your turn.</li>
@@ -268,6 +292,7 @@
     <div class="note" id="copyMsg" style="min-height:0;margin:6px 0 0;text-align:center"></div>
     <div style="font-size:14px;margin-top:12px;font-weight:800">Players</div>
     <div id="lbSeats"></div>
+    <div id="lbReqs"></div>
     <div class="note" id="lbNote"></div>
     <div class="vrow vcRow" style="display:none"><button class="vMic"></button><button class="vSpk"></button></div>
     <div class="note vmsg"></div>
@@ -286,6 +311,13 @@
     <div style="font-size:54px">🏆</div>
     <h2 id="winTitle"></h2>
     <p id="winText" style="font-size:14px"></p>
+    <div id="shareBox" style="display:none;margin:8px 0 14px">
+      <canvas id="shareCv" width="1080" height="1080" style="width:100%;max-width:300px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.2)"></canvas>
+      <div class="small" style="margin:10px 0 6px;font-weight:800">Share your time</div>
+      <div class="vrow" style="margin-bottom:6px"><button id="shWa">WhatsApp</button><button id="shX">X</button><button id="shFb">Facebook</button></div>
+      <div class="vrow" style="margin-bottom:6px"><button id="shDownload">Save image</button><button id="shCopy">Copy text</button><button id="shNative" style="display:none">Share…</button></div>
+      <div class="note" id="shMsg" style="min-height:0;text-align:center"></div>
+    </div>
     <button id="againBtn" style="width:100%;font-size:17px;padding:13px">Play again</button>
     <div id="winWait" class="small" style="display:none">Waiting for the host to start the next game…</div>
   </div>
@@ -301,10 +333,18 @@
   </div>
 </div>
 
+<div class="watchbar" id="watchBar">
+  <div style="text-align:center;font-weight:800;font-size:14px" id="watchMsg">👀 You're watching</div>
+  <div class="wrow" id="watchRow">
+    <input class="field" id="askNote" maxlength="60" placeholder="Add a comment (optional)">
+    <button id="askBtn" style="white-space:nowrap">Ask to join next game</button>
+  </div>
+</div>
+
 <div class="overlay hide" id="gone">
   <div class="modal" style="text-align:center">
-    <h2>The host left</h2>
-    <p class="small">The game has ended because the host's phone disconnected.</p>
+    <h2 id="goneTitle">The host left</h2>
+    <p class="small" id="goneText">The game has ended because the host's phone disconnected.</p>
     <button id="goneBtn" style="width:100%;font-size:17px;padding:13px">Back to start</button>
   </div>
 </div>
@@ -330,15 +370,12 @@ const PLAYER_NOTE={
   2:'Two players sit opposite (blue and red, or yellow and green). Each fills two sides: own side, then the next one clockwise.',
   3:'Three players: each fills their own side. The unused character and start tile are taken out of the middle.',
   4:'Four players: each fills their own side.'};
-const AGE_NOTE={
-  kids:'Sounds, hints and the spoken feeling on each match are on.',
-  all:'Starts quiet: game sounds and hints are off. You can switch them on any time.'};
-
-/* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays on its own phone */
-let afterMode='Home';
-let MODE='local', nPlayers=2, G=null, busy=false, ageMode=null, sentFlip=false, lastSeat=null;
+const TURN_MS=10000;   // the 10-second rule: if you don't flip a tile in time, the next player goes
+/* MODE: 'local' = one shared screen, 'host' = runs an online game, 'guest' = plays (or watches) on its own phone */
+let MODE='local', nPlayers=2, G=null, busy=false, sentFlip=false, lastSeat=null;
 let colourMode='auto', names=['','','',''], colours=[];
-const NET={peer:null,conns:{},hostConn:null,myCol:null,code:null,seatIdx:-1};
+// watch = people waiting or watching (host side); seen = when each guest last checked in
+const NET={peer:null,conns:{},hostConn:null,myCol:null,code:null,seatIdx:-1,watch:{},seen:{},watching:false,asked:false};
 let LB={seats:[],inGame:false};
 const $=id=>document.getElementById(id);
 const cap=s=>s[0].toUpperCase()+s.slice(1);
@@ -348,15 +385,19 @@ const CHAR_OF={blue:'braids',yellow:'bun',red:'glasses',green:'curly'};
 // switches for game sounds, spoken feelings and the next-space hint
 function drawToggles(){
   document.querySelectorAll('.tgl').forEach(b=>{
-    if(b.dataset.for==='voice')b.style.display=ageMode==='kids'?'flex':'none';   // no speech option for Everyone
     const on=$(b.dataset.for).checked;
     b.classList.toggle('on',on);b.querySelector('b').textContent=on?'ON':'OFF';
   });
 }
-// Kids get everything on; Everyone starts quiet and can switch things on
-function applyDefaults(){
-  const k=ageMode==='kids';
-  $('voice').checked=k;$('hint').checked=k;$('sfx').checked=k;drawToggles();
+// everything starts OFF; the choices are remembered on this device
+const SKEY='expresso-settings';
+function loadSettings(){
+  let s={};try{s=JSON.parse(localStorage.getItem(SKEY)||'{}')}catch(e){}
+  ['sfx','voice','hint'].forEach(k=>{$(k).checked=!!s[k]});
+  drawToggles();
+}
+function saveSettings(){
+  try{localStorage.setItem(SKEY,JSON.stringify({sfx:$('sfx').checked,voice:$('voice').checked,hint:$('hint').checked}))}catch(e){}
 }
 const avStyle=col=>col?`background-image:url(assets/${CHAR_OF[col]}_happy.png);background-size:cover;background-position:center 20%;border:4px solid ${COL[col]}`:'background:#ddd';
 
@@ -379,7 +420,7 @@ function sfx(kind){
   }catch(e){}
 }
 function speak(text){
-  if(ageMode!=='kids'||!$('voice').checked||!('speechSynthesis' in window))return;   // speech is a Kids-mode feature only
+  if(!$('voice').checked||!('speechSynthesis' in window))return;   // off unless the player switches it on
   try{
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);
@@ -426,7 +467,6 @@ function pickCol(cols,i,col,n){
 
 /* ---------- setup screen (this device) ---------- */
 function drawSetup(){
-  $('modeName').textContent=ageMode==='kids'?'Kids':ageMode==='all'?'Everyone':'';
   $('count').innerHTML='';
   [1,2,3,4].forEach(n=>{
     const b=document.createElement('button');b.textContent=n;b.className=n===nPlayers?'sel':'ghost';
@@ -456,8 +496,7 @@ function drawSetup(){
   }
 }
 function showSection(name){
-  if(!ageMode&&name!=='Who'&&name!=='Invite'){afterMode=name;name='Who'}   // always ask who is playing first
-  ['Who','Invite','Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
+  ['Invite','Home','Local','Online'].forEach(n=>$('sc'+n).style.display=n===name?'block':'none');
   netMsg('');drawSetup();
 }
 const localSeatInfo=()=>colours.slice(0,nPlayers).map((c,i)=>({col:c,name:(names[i]||'').trim()||('Player '+(i+1))}));
@@ -481,7 +520,7 @@ function newGame(seatInfo){
     }
     const path=[];
     sides.forEach(sd=>sd.order.forEach((emo,i)=>path.push({char:sd.char,emo,r:sd.cells[i][0],c:sd.cells[i][1]})));
-    return {id:s.id,col:s.col,name:s.name,started:false,path,progress:0,away:false};
+    return {id:s.id,col:s.col,name:s.name,started:false,path,progress:0,away:false,misses:0,out:false};
   });
   const usedChars=new Set();players.forEach(p=>p.path.forEach(s=>usedChars.add(s.char)));
   const tiles=[];
@@ -493,10 +532,10 @@ function newGame(seatInfo){
   G={gid:Date.now()+'-'+Math.random().toString(36).slice(2),players,tiles,turn:Math.floor(Math.random()*players.length),
      phase:'pick',out:[],log:[],cur:null,status:'',winner:null,dead:false};
   busy=false;
-  applyDefaults();
   buildBoard();
   const f=players[G.turn];
   say(`${f.name} (${f.col}) goes first. Flip a tile to look for the ${f.col} start tile.`);
+  armTimer();
   update();
 }
 
@@ -549,6 +588,7 @@ function onCardClick(t){
 function flip(t){
   if(busy||G.phase!=='pick'||t.state!=='down')return;
   const g=G;
+  if(!G.t0&&G.players.length===1)G.t0=Date.now();   // solo: the stopwatch starts on the first flip
   busy=true;t.state='up';G.cur=t;update();fx('sfx','flip');
   setTimeout(()=>{if(G===g&&!g.dead)resolve(t)},750);
 }
@@ -569,14 +609,14 @@ function resolve(t){
     t.state='out';G.out.push(t);G.cur=null;
     logit(`${name} flipped the Expresso tile: one extra flip!`);
     say('');
-    busy=false;update();return;
+    busy=false;armTimer();update();return;
   }
   if(!p.started){
     if(t.kind==='start'&&t.key===p.col){
       p.started=true;t.state='placed';G.cur=null;fx('sfx','start');
       logit(`${name} found their start tile.`);
       say(`${name} is in the game! Now find ${EMO_NAME[nextNeed(p).emo]} (${CHAR_NAME[nextNeed(p).char]}). Keep flipping.`);
-      busy=false;update();return;
+      busy=false;armTimer();update();return;
     }
   }else if(hit){
     t.state='placed';G.cur=null;p.progress++;
@@ -585,31 +625,61 @@ function resolve(t){
     if(p.progress>=p.path.length)return win(p);
     const n2=nextNeed(p);
     say(`Match! Next: ${EMO_NAME[n2.emo]} (${CHAR_NAME[n2.char]}). Keep flipping.`);
-    busy=false;update();return;
+    busy=false;armTimer();update();return;
   }
   // miss: red flash, then flip back and pass automatically
   logit(`${name} flipped ${describe(t)}: no match.`);
+  p.misses=(p.misses||0)+1;
+  if(G.players.length>1&&p.misses>=3){   // three strikes: their cards vanish and they can only watch
+    p.out=true;G.eliminated=true;logit(`${name} is out after 3 misses.`);
+  }
   G.phase='miss';busy=true;
   say(`${describe(t)}: not what ${name} needs. Remember where it is!`);
   update();
   fx('sfx','miss');fx('flash');
-  setTimeout(()=>{if(G!==g||g.dead)return;busy=false;nextTurn();},1700);
+  setTimeout(()=>{if(G!==g||g.dead)return;busy=false;afterMiss();},1700);
 }
 
 function nextTurn(){
   if(G.cur){G.cur.state='down';G.cur=null;}
   let k=0;
-  do{G.turn=(G.turn+1)%G.players.length;k++;}while(G.players[G.turn].away&&k<=G.players.length);
+  do{G.turn=(G.turn+1)%G.players.length;k++;}while((G.players[G.turn].away||G.players[G.turn].out)&&k<=G.players.length);
   G.phase='pick';
   const p=curP();
   say(p.started?`${p.name}'s turn. Find ${EMO_NAME[nextNeed(p).emo]} (${CHAR_NAME[nextNeed(p).char]}).`
                :`${p.name}'s turn. Find the ${p.col} start tile.`);
+  armTimer();
   update();
 }
+function armTimer(){if(G)G.deadline=Date.now()+TURN_MS}
+// only counts when 2 or more people are still playing; a solo player can take their time
+const timerOn=()=>G&&!G.winner&&G.phase==='pick'&&!busy&&G.deadline&&G.players.filter(p=>!p.away&&!p.removed&&!p.out).length>1;
+setInterval(()=>{
+  if(!G||G.dead||MODE==='guest'||!timerOn()||Date.now()<G.deadline)return;
+  const p=curP();logit(p.name+' ran out of time.');fx('sfx','miss');nextTurn();   // the host (or the shared screen) moves the turn on
+},250);
+setInterval(()=>{
+  const r=$('tring');
+  if(!timerOn()){   // no countdown right now: a calm, full grey ring (solo players see their stopwatch instead)
+    r.style.setProperty('--p','360deg');r.style.setProperty('--c','#cfc6ad');r.classList.remove('urgent');$('tsec').textContent=soloClock();return;
+  }
+  const left=Math.max(0,G.deadline-Date.now()),f=left/TURN_MS;
+  r.style.setProperty('--p',(f*360)+'deg');                                   // the colour runs out like a clock hand
+  r.style.setProperty('--c',f>.5?'#3BB54A':f>.3?'#FFC21F':'#ED1C24');        // green, then yellow, then red
+  r.classList.toggle('urgent',left<3000);                                      // pulses in the last 3 seconds
+  $('tsec').textContent=Math.ceil(left/1000);
+},100);
 
-function win(p){
-  G.phase='won';busy=false;
-  G.winner={title:`${p.name} wins!`,text:G.players.length===1?'All four sides complete.':p.path.length>5?'Two sides complete first.':'Their side is complete first.'};
+// after a miss: if three strikes left only one player standing they win, otherwise the next player goes
+function afterMiss(){
+  const left=G.players.filter(q=>!q.out&&!q.away&&!q.removed);
+  if(G.eliminated&&left.length===1){if(G.cur){G.cur.state='down';G.cur=null}win(left[0],true)}
+  else nextTurn();
+}
+function win(p,lastStanding){
+  G.phase='won';busy=false;G.tEnd=Date.now();
+  const solo=G.players.length===1;
+  G.winner={title:solo?`${p.name} finished!`:`${p.name} wins!`,text:solo?`All four sides in ${fmtTime(G.tEnd-(G.t0||G.tEnd))}`:lastStanding?'Last player standing!':p.path.length>5?'Two sides complete first.':'Their side is complete first.'};
   fx('sfx','win');fx('confetti');fx('speak',p.name+' wins!');
   update();
 }
@@ -626,27 +696,38 @@ function update(){
   });
   $('centre').classList.toggle('locked',busy||G.phase!=='pick'||!myTurn());
   Object.values(spaceEl).forEach(e=>e.classList.remove('next'));
-  G.players.forEach(pl=>pl.path.forEach((s,i)=>{if(i<pl.progress)spaceEl[s.r+','+s.c].classList.add('filled')}));
+  // a player who is out loses their cards from the board
+  G.players.forEach(pl=>pl.path.forEach((s,i)=>spaceEl[s.r+','+s.c].classList.toggle('filled',i<pl.progress&&!pl.out)));
   const need=nextNeed(p);
   if(need&&p.started&&$('hint').checked&&!G.winner)spaceEl[need.r+','+need.c].classList.add('next');
   Object.entries(cornerEl).forEach(([col,e])=>{
     const pl=G.players.find(x=>x.col===col);
-    e.classList.toggle('started',!!pl&&pl.started);
+    e.classList.toggle('started',!!pl&&pl.started&&!pl.out);
     e.classList.toggle('active',!!pl&&pl===p&&!G.winner);
   });
   $('turnChip').style.cssText=avStyle(p.col);
   $('turnName').textContent=p.name+"'s turn"+(MODE!=='local'&&myTurn()?'  ← you!':'');
-  $('roomTag').textContent=MODE==='local'?'':'ROOM '+NET.code+(NET.myCol?'  ·  you are '+NET.myCol:'');
+  $('roomTag').textContent=MODE==='local'?'':'ROOM '+NET.code+(NET.watching?'  ·  watching':(NET.myCol?'  ·  you are '+NET.myCol:''));
   // one short cue only: before a player has started, tell them what to find. Everything else is shown by the board, sounds and flash.
-  $('status').textContent=(!G.winner&&G.phase==='pick'&&!p.started)?`Find the ${p.col} start tile.`:'';
+  const me=MODE!=='local'?G.players.find(x=>x.col===NET.myCol):null;
+  $('status').textContent=(me&&me.out&&!G.winner)?'😢 You are out. Watch the others play!':(!G.winner&&G.phase==='pick'&&!p.started)?`Find the ${p.col} start tile.`:'';
   $('status').style.display=$('status').textContent?'block':'none';
-  $('players').innerHTML=G.players.map(pl=>`<div class="pl ${pl===p?'cur':''}"><span class="chip" data-pid="${pl.pid||(pl.id==='host'&&NET.peer?NET.peer.id:pl.id)||''}" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span><div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.away?'left':pl.started?'started':'needs start'}</span></div>`).join('');
+  $('players').innerHTML=G.players.filter(pl=>!pl.removed).map(pl=>{
+    const pid=pl.pid||(pl.id==='host'&&NET.peer?NET.peer.id:pl.id)||'';
+    const canKick=MODE==='host'&&pl.id&&pl.id!=='host';   // only the host can remove someone
+    const lives=G.players.length>1?`<span class="lives">${'♥'.repeat(Math.max(0,3-(pl.misses||0)))}<i>${'♥'.repeat(Math.min(3,pl.misses||0))}</i></span>`:'';
+    return `<div class="pl ${pl===p?'cur':''}${pl.out?' out':''}"><span class="chip" data-pid="${pid}" style="${avStyle(pl.col)}"></span><span class="nm">${pl.name.replace(/</g,'&lt;')}</span>${lives}<div class="dots">${pl.path.map((_,i)=>`<span class="dot" style="${i<pl.progress?`background:${COL[pl.col]}`:''}"></span>`).join('')}</div><span class="st">${pl.out?'out':pl.away?'left':pl.quiet?'not responding':pl.started?'started':'needs start'}</span>${canKick?`<button class="rm" data-kick="${pid}" title="Remove ${pl.name.replace(/"/g,'')}">✕</button>`:''}</div>`;
+  }).join('');
+  renderReqs();drawWatch();
   $('outBox').style.display=G.out.length?'block':'none';
   $('tray').innerHTML=G.out.map(t=>`<img src="assets/${t.img}.png"><span>Expresso used</span>`).join('');
   $('newBtn').textContent=MODE==='guest'?'Leave room':'New game';
   drawVoice();
   if(G.winner){
     $('winTitle').textContent=G.winner.title;$('winText').textContent=G.winner.text;
+    const soloShare=G.players.length===1&&MODE==='local';
+    $('shareBox').style.display=soloShare?'block':'none';
+    if(soloShare&&!G.cardDrawn){G.cardDrawn=true;drawShareCard(G.tEnd-(G.t0||G.tEnd),G.players[0].name)}
     $('againBtn').style.display=MODE==='guest'?'none':'block';
     $('winWait').style.display=MODE==='guest'?'block':'none';
     $('winner').classList.remove('hide');
@@ -657,9 +738,9 @@ function update(){
 /* ---------- online: host side ---------- */
 // everything a guest needs to draw the board; face-down tiles carry no picture, so nobody can peek
 function snap(){
-  return {gid:G.gid,turn:G.turn,phase:G.phase,busy,status:G.status,log:G.log.slice(0,8),winner:G.winner,
+  return {gid:G.gid,turn:G.turn,phase:G.phase,busy,left:Math.max(0,(G.deadline||0)-Date.now()),status:G.status,log:G.log.slice(0,8),winner:G.winner,
     out:G.out.map(t=>t.img),
-    players:G.players.map(p=>({col:p.col,name:p.name,started:p.started,progress:p.progress,away:p.away,path:p.path,pid:p.id==='host'?NET.peer.id:p.id})),
+    players:G.players.map(p=>({col:p.col,name:p.name,started:p.started,progress:p.progress,away:p.away,quiet:!!p.quiet,removed:!!p.removed,misses:p.misses||0,out:!!p.out,path:p.path,pid:p.id==='host'?NET.peer.id:p.id})),
     tiles:G.tiles.map(t=>({pos:t.pos,state:t.state,img:t.state==='down'?null:t.img}))};
 }
 const CODE_CHARS='ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -684,7 +765,7 @@ function openPeer(id){
 }
 const netMsg=s=>{
   $('netMsg').textContent=s||'';$('invMsg').textContent=s||'';
-  if(s&&s!=='Joining…')document.querySelectorAll('#invKids,#invAll').forEach(b=>b.disabled=false);   // let them try again after an error
+  if(s&&s!=='Joining…')$('invJoin').disabled=false;   // let them try again after an error
 };
 
 async function createRoom(){
@@ -698,7 +779,7 @@ async function createRoom(){
       try{peer=await openPeer('expresso-'+code)}catch(e){if(e.type!=='unavailable-id')throw e}
     }
     if(!peer)throw new Error('Could not make a room. Please try again.');
-    NET.peer=peer;NET.code=code;MODE='host';NET.seatIdx=0;NET.myCol=null;NET.conns={};
+    NET.peer=peer;NET.code=code;MODE='host';NET.seatIdx=0;NET.myCol=null;NET.conns={};NET.watch={};NET.seen={};
     LB={seats:[{id:'host',name,col:null}],inGame:false};fixColours();
     peer.on('connection',onGuestConn);
     peer.on('call',onCall);
@@ -722,27 +803,37 @@ function pickLobby(i,col){
 }
 function broadcastLobby(){
   const seats=LB.seats.map(s=>({name:s.name,col:s.col,pid:seatPid(s)}));
-  Object.entries(NET.conns).forEach(([id,c])=>{
-    const idx=LB.seats.findIndex(s=>s.id===id);
-    try{if(c.open)c.send({t:'lobby',code:NET.code,seats,you:idx})}catch(e){}
+  LB.seats.forEach((s,idx)=>{   // only people with a seat get the lobby; watchers keep watching
+    if(s.id==='host')return;
+    const c=NET.conns[s.id];
+    try{if(c&&c.open)c.send({t:'lobby',code:NET.code,seats,you:idx})}catch(e){}
   });
   connectVoice(seats.map(s=>s.pid));
 }
 function onGuestConn(c){
-  NET.conns[c.peer]=c;
+  NET.conns[c.peer]=c;NET.seen[c.peer]=Date.now();
   c.on('data',m=>onHostGets(c,m));
   c.on('close',()=>onGuestGone(c));
   c.on('error',()=>onGuestGone(c));
 }
 function onHostGets(c,m){
   if(!m||!m.t)return;
+  NET.seen[c.peer]=Date.now();
+  if(m.t==='ping')return;
   if(m.t==='join'){
+    const name=String(m.name||'Player').slice(0,14);
     if(LB.inGame||LB.seats.length>=4){
-      try{c.send({t:'full',why:LB.inGame?'That game has already started.':'That room is full (4 players).'})}catch(e){}
-      setTimeout(()=>{try{c.close()}catch(e){}},300);delete NET.conns[c.peer];return;
+      // can't seat them now: they wait and watch, and the host decides about the next game
+      NET.watch[c.peer]={name,note:'',asked:false,approved:false};
+      try{c.send({t:'watch',code:NET.code,why:LB.inGame?'A game is in progress.':'The room is full right now.'})}catch(e){}
+      if(G&&!G.dead&&LB.inGame){try{c.send({t:'state',s:snap()})}catch(e){}}
+      renderReqs();return;
     }
-    if(!LB.seats.some(s=>s.id===c.peer))LB.seats.push({id:c.peer,name:String(m.name||'Player').slice(0,14),col:null});
+    if(!LB.seats.some(s=>s.id===c.peer))LB.seats.push({id:c.peer,name,col:null});
     fixColours();broadcastLobby();drawLobby();
+  }else if(m.t==='ask'){
+    const w=NET.watch[c.peer];
+    if(w){w.asked=true;w.note=String(m.note||'').slice(0,60);renderReqs();if($('sfx').checked)sfx('start')}
   }else if(m.t==='pick'){
     const i=LB.seats.findIndex(s=>s.id===c.peer);
     if(i>=0&&!LB.inGame&&ALLC.includes(m.col)){pickLobby(i,m.col);broadcastLobby();drawLobby();}
@@ -754,7 +845,8 @@ function onHostGets(c,m){
 }
 function onGuestGone(c){
   if(!NET.conns[c.peer])return;
-  delete NET.conns[c.peer];
+  delete NET.conns[c.peer];delete NET.seen[c.peer];
+  if(NET.watch[c.peer]){delete NET.watch[c.peer];renderReqs();return}
   if(LB.inGame&&G&&!G.dead){
     const p=G.players.find(x=>x.id===c.peer);
     if(p&&!p.away){
@@ -777,8 +869,89 @@ function hostToLobby(){
   if(G)G.dead=true;
   LB.inGame=false;
   LB.seats=LB.seats.filter(s=>s.id==='host'||(NET.conns[s.id]&&NET.conns[s.id].open));
+  promoteWatchers();
   fixColours();$('winner').classList.add('hide');broadcastLobby();showLobby();
 }
+
+/* host tools: remove a player, answer join requests, and seat allowed watchers in the next game */
+function kick(pid){
+  const c=NET.conns[pid];
+  try{if(c&&c.open)c.send({t:'kicked'})}catch(e){}
+  delete NET.conns[pid];delete NET.seen[pid];delete NET.watch[pid];
+  setTimeout(()=>{try{c&&c.close()}catch(e){}},400);
+  dropVoice(pid);
+  if(LB.inGame&&G&&!G.dead){
+    const p=G.players.find(x=>x.id===pid);
+    if(p&&!p.removed){
+      p.away=true;p.removed=true;logit(p.name+' was removed.');
+      if(!busy&&G.phase==='pick'&&curP()===p)nextTurn();else update();
+    }
+  }else{
+    LB.seats=LB.seats.filter(s=>s.id!==pid);fixColours();broadcastLobby();drawLobby();
+  }
+  renderReqs();
+}
+function promoteWatchers(){
+  let n=0;
+  Object.entries(NET.watch).forEach(([pid,w])=>{
+    const c=NET.conns[pid];
+    if(w.approved&&LB.seats.length<4&&c&&c.open){LB.seats.push({id:pid,name:w.name,col:null});delete NET.watch[pid];n++}
+  });
+  if(n)fixColours();
+  return n;
+}
+function hostPlayAgain(){
+  // same players still here, plus anyone the host allowed; goes straight in unless the group changed
+  const keep=G.players.filter(p=>!p.away&&!p.removed&&(p.id==='host'||(NET.conns[p.id]&&NET.conns[p.id].open)));
+  LB.seats=keep.map(p=>({id:p.id,name:p.name,col:p.col}));
+  const added=promoteWatchers();
+  fixColours();
+  G.dead=true;LB.inGame=false;
+  if(added===0&&LB.seats.length>=2){broadcastLobby();hostStart()}
+  else{$('winner').classList.add('hide');broadcastLobby();showLobby()}
+}
+function renderReqs(){
+  const ids=Object.keys(NET.watch),esc=s=>String(s).replace(/</g,'&lt;');
+  const rows=ids.map(pid=>{
+    const w=NET.watch[pid];
+    const label=w.approved?`<b>${esc(w.name)}</b> ✓ allowed for the next game`:w.asked?`<b>${esc(w.name)}</b> wants to join the next game`:`<b>${esc(w.name)}</b> is watching`;
+    const btns=(w.approved?'':`<button class="ok" data-req="allow" data-id="${pid}">Allow</button>`)+(w.asked&&!w.approved?`<button class="no" data-req="decline" data-id="${pid}">Decline</button>`:'')+`<button class="no" data-req="remove" data-id="${pid}" title="Remove">✕</button>`;
+    return `<div class="req"><div>${label}${w.note?`<div class="rq-note">“${esc(w.note)}”</div>`:''}</div><div class="rq-btns">${btns}</div></div>`;
+  }).join('');
+  const html=ids.length?'<div style="font-weight:800;font-size:13px;margin-bottom:4px">👀 Waiting to join</div>'+rows:'';
+  const host=MODE==='host'&&ids.length>0;
+  $('reqBox').innerHTML=html;$('reqBox').style.display=host?'block':'none';
+  $('lbReqs').innerHTML=host?'<div class="reqbox" style="border-radius:12px;padding:8px 12px;margin-top:10px">'+html+'</div>':'';
+}
+function onReqClick(e){
+  const b=e.target.closest('[data-req]');if(!b||MODE!=='host')return;
+  const pid=b.dataset.id,w=NET.watch[pid],c=NET.conns[pid];if(!w)return;
+  if(b.dataset.req==='allow'){
+    w.approved=true;try{if(c&&c.open)c.send({t:'approved'})}catch(x){}
+    if(!LB.inGame&&promoteWatchers()){broadcastLobby();drawLobby()}   // room is open: seat them right away
+  }else if(b.dataset.req==='decline'){
+    w.asked=false;w.approved=false;w.note='';try{if(c&&c.open)c.send({t:'declined'})}catch(x){}
+  }else if(b.dataset.req==='remove'){
+    if(confirm('Remove '+w.name+'?'))kick(pid);return;
+  }
+  renderReqs();
+}
+// every few seconds: notice players who went quiet, and skip a turn that is stuck on someone who left
+setInterval(()=>{
+  if(MODE!=='host')return;
+  const now=Date.now();let changed=false;
+  if(G&&!G.dead)G.players.forEach(p=>{
+    if(!p.id||p.id==='host'||p.away)return;
+    const q=NET.seen[p.id]?now-NET.seen[p.id]>15000:false;
+    if(!!p.quiet!==q){p.quiet=q;changed=true}
+  });
+  if(G&&!G.dead&&LB.inGame&&G.phase==='pick'&&!busy&&!G.winner){
+    const p=curP();
+    if(p.away||p.out||(p.id!=='host'&&NET.seen[p.id]&&now-NET.seen[p.id]>20000)){nextTurn();return}
+  }
+  if(changed)update();
+  if(!LB.inGame&&!$('lobby').classList.contains('hide'))drawLobby();
+},3000);
 
 /* ---------- online: guest side ---------- */
 async function joinRoom(){
@@ -796,13 +969,26 @@ async function joinRoom(){
     peer.on('error',e=>{clearTimeout(timer);netMsg(e.type==='peer-unavailable'?'No room with that code.':'Connection problem ('+(e.type||'error')+').');$('joinBtn').disabled=false});
     c.on('open',()=>{clearTimeout(timer);NET.hostConn=c;NET.code=code;MODE='guest';NET.myCol=null;netMsg('');c.send({t:'join',name});$('joinBtn').disabled=false});
     c.on('data',onGuestGets);
-    c.on('close',()=>{if(MODE==='guest')$('gone').classList.remove('hide')});
+    c.on('close',()=>{if(MODE==='guest')showGone('The host left','The game has ended because the host disconnected.')});
   }catch(e){netMsg(e&&e.message?e.message:'Could not connect.');$('joinBtn').disabled=false}
 }
 function onGuestGets(m){
   if(!m||!m.t)return;
   if(m.t==='full'){MODE='local';netMsg(m.why);try{NET.peer.destroy()}catch(e){}}
+  else if(m.t==='watch'){
+    // no seat right now: watch the game and ask the host to be let in next time
+    NET.watching=true;NET.asked=false;NET.code=m.code;
+    NET.watchState='👀 '+m.why+' You can watch, and ask the host to let you in next game.';
+    $('setup').classList.add('hide');drawWatch();
+  }
+  else if(m.t==='approved'){NET.asked=true;NET.watchState='✓ The host said yes! You will join the next game.';drawWatch()}
+  else if(m.t==='declined'){NET.asked=true;NET.watchState='The host said not this time. You can keep watching.';drawWatch()}
+  else if(m.t==='kicked'){
+    MODE='local';NET.watching=false;drawWatch();
+    showGone('You were removed','The host removed you from this room.');
+  }
   else if(m.t==='lobby'){
+    NET.watching=false;drawWatch();
     LB.seats=m.seats;NET.seatIdx=m.you;NET.code=m.code;
     connectVoice(m.seats.map(s=>s.pid));
     if(G)G.dead=true;
@@ -812,12 +998,21 @@ function onGuestGets(m){
   else if(m.t==='state')applyState(m.s);
   else if(m.t==='fx')doFx(m.k,m.a);
 }
+function showGone(title,text){$('goneTitle').textContent=title;$('goneText').textContent=text;$('gone').classList.remove('hide')}
+// the bar at the bottom for someone who is watching and waiting for a seat
+function drawWatch(){
+  const on=MODE==='guest'&&NET.watching;
+  $('watchBar').style.display=on?'block':'none';
+  document.body.style.paddingBottom=on?'120px':'';
+  if(!on)return;
+  $('watchMsg').textContent=NET.watchState||'👀 You are watching';
+  $('watchRow').style.display=NET.asked?'none':'flex';
+}
 function applyState(s){
   sentFlip=false;
   const fresh=!G||G.gid!==s.gid;
   if(fresh){
     G={gid:s.gid,players:s.players,tiles:s.tiles.map(t=>({pos:t.pos,state:t.state,img:t.img})),turn:s.turn,phase:s.phase,out:[],log:[],cur:null,status:'',winner:null,dead:false};
-    applyDefaults();
     $('lobby').classList.add('hide');$('setup').classList.add('hide');$('winner').classList.add('hide');
     buildBoard();
   }else{
@@ -825,6 +1020,7 @@ function applyState(s){
   }
   G.players=s.players;G.turn=s.turn;G.phase=s.phase;G.status=s.status;G.log=s.log;G.winner=s.winner;
   G.out=s.out.map(img=>({img}));busy=s.busy;
+  G.deadline=Date.now()+(s.left||0);   // each device counts down on its own clock from what the host sent
   update();
 }
 
@@ -917,7 +1113,7 @@ async function toggleListen(){
 function drawVoice(){
   document.querySelectorAll('.vMic').forEach(b=>{b.textContent=V.micOn?'🎤 My mic: ON':'🎤 My mic: off';b.classList.toggle('on',V.micOn)});
   document.querySelectorAll('.vSpk').forEach(b=>{b.textContent=V.listenOn?'🔊 Hearing friends':'🔇 Friends muted';b.classList.toggle('on',V.listenOn)});
-  document.querySelectorAll('.vcRow').forEach(e=>e.style.display=MODE==='local'?'none':'flex');
+  document.querySelectorAll('.vcRow').forEach(e=>e.style.display=(MODE==='local'||NET.watching)?'none':'flex');
 }
 // the speaker's character pulses while they talk
 const lvl=an=>{const b=new Uint8Array(an.fftSize);an.getByteTimeDomainData(b);let m=0;for(const v of b)m=Math.max(m,Math.abs(v-128));return m};
@@ -939,7 +1135,8 @@ function drawLobby(){
   LB.seats.forEach((s,i)=>{
     const row=document.createElement('div');row.className='seat';
     const chip=document.createElement('span');chip.className='chip';chip.style.cssText=avStyle(s.col);chip.dataset.pid=seatPid(s)||'';
-    const nm=document.createElement('span');nm.className='nmx';nm.textContent=s.name+(i===NET.seatIdx?' (you)':'')+(i===0&&MODE!=='host'?' · host':'');
+    const quiet=MODE==='host'&&s.id&&s.id!=='host'&&NET.seen[s.id]&&Date.now()-NET.seen[s.id]>15000;
+    const nm=document.createElement('span');nm.className='nmx';nm.textContent=s.name+(i===NET.seatIdx?' (you)':'')+(i===0&&MODE!=='host'?' · host':'')+(quiet?' · not responding':'');
     const pk=document.createElement('div');pk.className='picks';
     ALLC.forEach(c=>{
       const b=document.createElement('button');b.className='pk'+(s.col===c?' on':'');b.style.cssText=avStyle(c);b.title=CHAR_NAME[CHAR_OF[c]];
@@ -950,9 +1147,15 @@ function drawLobby(){
       };
       pk.appendChild(b);
     });
-    row.append(chip,nm,pk);box.appendChild(row);
+    row.append(chip,nm,pk);
+    if(MODE==='host'&&s.id&&s.id!=='host'){   // the host can remove anyone, including someone who has gone quiet
+      const x=document.createElement('button');x.className='rm';x.textContent='✕';x.title='Remove '+s.name;
+      x.onclick=()=>{if(confirm('Remove '+s.name+' from the room?'))kick(s.id)};
+      row.appendChild(x);
+    }
+    box.appendChild(row);
   });
-  drawVoice();
+  renderReqs();drawVoice();
   const host=MODE==='host';
   $('lbHostBtns').style.display=host?'block':'none';
   $('lbGuestMsg').style.display=host?'none':'block';
@@ -985,22 +1188,86 @@ function shareInvite(){
   if(navigator.share)navigator.share({title:'Expresso',text:'Join my Expresso game! Code: '+NET.code,url}).catch(()=>{});
 }
 
+/* ---------- solo: stopwatch and a shareable result card ---------- */
+const PROMO_URL='https://games.counseld.in';
+const fmtTime=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const soloClock=()=>(G&&G.players.length===1)?fmtTime(G.t0?((G.tEnd||Date.now())-G.t0):0):'';
+const loadImg=src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src});
+let shareText='';
+async function drawShareCard(ms,name){
+  const t=fmtTime(ms),who=/^Player \d$/.test(name)?'I':name;
+  shareText=`${who==='I'?'I':name} finished all 20 feelings in Expresso in ${t}! Can you beat my time? ${PROMO_URL}`;
+  const cv=$('shareCv'),x=cv.getContext('2d'),W=1080;
+  x.fillStyle='#fff7e6';x.fillRect(0,0,W,W);
+  const faces=[['braids','#22A8E1'],['bun','#FFC21F'],['curly','#3BB54A'],['glasses','#ED1C24']];
+  for(let i=0;i<4;i++){
+    const [ch,col]=faces[i],cx=135+270*i,cy=140,im=await loadImg(`assets/${ch}_happy.png`);
+    x.save();x.beginPath();x.arc(cx,cy,115,0,Math.PI*2);x.clip();
+    if(im)x.drawImage(im,cx-115,cy-115,230,230);
+    x.restore();x.lineWidth=14;x.strokeStyle=col;x.beginPath();x.arc(cx,cy,115,0,Math.PI*2);x.stroke();
+  }
+  x.textAlign='center';x.lineJoin='round';
+  const big=(txt,y,size,fill,stk)=>{x.font=`900 ${size}px "Trebuchet MS",Arial,sans-serif`;x.lineWidth=size/9;x.strokeStyle=stk;x.strokeText(txt,W/2,y);x.fillStyle=fill;x.fillText(txt,W/2,y)};
+  const line=(txt,y,size,fill,wt)=>{x.fillStyle=fill;x.font=`${wt||800} ${size}px "Trebuchet MS",Arial,sans-serif`;x.fillText(txt,W/2,y)};
+  big('EXPRESSO',410,150,'#FFB020','#7a2a0a');
+  line('FLIP. MATCH. MOVE.',465,38,'#22A8E1');
+  line(who==='I'?'I finished!':name+' finished!',570,70,'#22303c');
+  big(t,800,250,'#3BB54A','#1d6b27');
+  line('All 20 feelings found and matched',880,42,'#22303c',700);
+  line('Can you beat my time?',950,54,'#ED1C24',900);
+  line('games.counseld.in',1022,44,'#22303c');
+}
+const cardBlob=()=>new Promise(r=>$('shareCv').toBlob(r,'image/png'));
+async function copyTo(text,msgId,what){
+  let ok=false;
+  try{await navigator.clipboard.writeText(text);ok=true}catch(e){}
+  if(!ok){try{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove()}catch(e){}}
+  $(msgId).textContent=ok?what+' copied.':"Couldn't copy. Use Save image or the share buttons.";
+  setTimeout(()=>{$(msgId).textContent=''},5000);
+}
+$('shDownload').onclick=async()=>{
+  const b=await cardBlob();if(!b)return;
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='expresso-my-time.png';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+};
+$('shCopy').onclick=()=>copyTo(shareText,'shMsg','Text');
+$('shNative').onclick=async()=>{
+  try{
+    const b=await cardBlob(),f=new File([b],'expresso.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],text:shareText});
+    else await navigator.share({text:shareText,url:PROMO_URL});
+  }catch(e){}
+};
+$('shWa').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent(shareText),'_blank','noopener');
+$('shX').onclick=()=>window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(shareText),'_blank','noopener');
+$('shFb').onclick=()=>window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(PROMO_URL)+'&quote='+encodeURIComponent(shareText),'_blank','noopener');
+if(navigator.share&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)$('shNative').style.display='';
+
 /* ---------- wiring ---------- */
 $('hint').onchange=()=>{if(G)update()};
 document.querySelectorAll('.tgl').forEach(b=>b.onclick=()=>{
-  const c=$(b.dataset.for);c.checked=!c.checked;drawToggles();if(G)update();
+  const c=$(b.dataset.for);c.checked=!c.checked;drawToggles();saveSettings();if(G)update();
 });
+$('players').onclick=e=>{
+  const b=e.target.closest('[data-kick]');if(!b||MODE!=='host')return;
+  const p=G&&G.players.find(x=>x.id===b.dataset.kick);
+  if(confirm('Remove '+(p?p.name:'this player')+' from the game?'))kick(b.dataset.kick);
+};
+$('reqBox').onclick=onReqClick;$('lbReqs').onclick=onReqClick;
+$('askBtn').onclick=()=>{
+  if(NET.hostConn&&NET.hostConn.open){
+    NET.hostConn.send({t:'ask',note:$('askNote').value});
+    NET.asked=true;NET.watchState='✓ Asked. Waiting for the host to answer…';drawWatch();
+  }
+};
+setInterval(()=>{if(MODE==='guest'&&NET.hostConn&&NET.hostConn.open){try{NET.hostConn.send({t:'ping'})}catch(e){}}},4000);   // lets the host see who is still here
 $('newBtn').onclick=()=>{
   if(MODE==='guest'){location.reload();return}
   if(MODE==='host'){hostToLobby();return}
   $('winner').classList.add('hide');showSection('Home');$('setup').classList.remove('hide');
 };
-$('againBtn').onclick=()=>{if(MODE==='guest')return;newGame(lastSeat)};
+$('againBtn').onclick=()=>{if(MODE==='guest')return;if(MODE==='host')hostPlayAgain();else newGame(lastSeat)};
 $('startBtn').onclick=()=>{MODE='local';$('setup').classList.add('hide');newGame()};
-function pickMode(m){ageMode=m;const next=afterMode;afterMode='Home';showSection(next)}
-$('ageKids').onclick=()=>pickMode('kids');
-$('ageAll').onclick=()=>pickMode('all');
-$('changeMode').onclick=()=>{afterMode='Home';ageMode=null;showSection('Who')};
 $('goLocal').onclick=()=>showSection('Local');
 $('goOnline').onclick=()=>showSection('Online');
 $('backLocal').onclick=()=>showSection('Home');
@@ -1025,18 +1292,16 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.
 autoColours();drawSetup();
 // invite links look like ...?room=ABCD
 const inviteCode=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
-// an invite link opens its own screen: name, Kids or Everyone, and one tap joins the room
-function joinFromInvite(m){
-  ageMode=m;
+// an invite link opens its own screen: type a name, tap once, and you are in the room (or watching, if a game is running)
+$('invJoin').onclick=()=>{
   $('onName').value=($('invName').value||'').trim();$('joinCode').value=inviteCode;
-  document.querySelectorAll('#invKids,#invAll').forEach(b=>b.disabled=true);
+  $('invJoin').disabled=true;
   joinRoom();
-}
-$('invKids').onclick=()=>joinFromInvite('kids');
-$('invAll').onclick=()=>joinFromInvite('all');
-$('invOther').onclick=()=>{try{history.replaceState(null,'',location.pathname)}catch(e){}$('joinCode').value='';showSection('Who')};
+};
+$('invOther').onclick=()=>{try{history.replaceState(null,'',location.pathname)}catch(e){}$('joinCode').value='';showSection('Home')};
+loadSettings();
 if(inviteCode){$('joinCode').value=inviteCode;$('invCode').textContent=inviteCode;showSection('Invite')}
-else showSection('Who');
+else showSection('Home');
 </script>
 </body>
 </html>
