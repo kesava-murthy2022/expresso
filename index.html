@@ -352,7 +352,7 @@ function speak(text){
     u.lang='en-IN';
     const v=speechSynthesis.getVoices().find(v=>/en[-_]IN/i.test(v.lang));
     if(v)u.voice=v;
-    u.rate=.85;u.pitch=1.1;
+    u.rate=.9;u.pitch=1.05;u.volume=.8;
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -370,7 +370,7 @@ function flash(){const fl=$('missFlash');fl.classList.remove('go');void fl.offse
 function doFx(k,a){
   if(k==='sfx')sfx(a);
   else if(k==='speak')speak(a);
-  else if(k==='emo'){ if(ageMode==='kids'||a.match)speak(EMO_NAME[a.emo]); }   // each device uses its own Kids/Everyone choice
+  else if(k==='emo'){ if(a.match)speak(EMO_NAME[a.emo]); }   // only said when the tile is a correct match, never on a wrong flip
   else if(k==='flash')flash();
   else if(k==='confetti')confetti();
 }
